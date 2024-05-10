@@ -18,7 +18,7 @@ Touch Portal plugin to control TPLink Tapo lights
     ```
 
 ### note about plugin-conf.txt
-Sample config file:
+This file only configures the plugin execution, it is used when launching the executable.
 ```Shell
 -d
 -l=TPLinkTapoPlugin.log
@@ -29,3 +29,11 @@ Sample config file:
 - -s: the logStream type, if stderr = sys.stderr, stdout = sys.stdout
 
 In any case you will be able to see logs too on TP's Logs tab.
+
+### lights config file
+Comma separated file with (optional) HEADER where the first column is a 'name' and the second column is the light's IP address:
+```Markdown
+NAME,IPADDRESS
+Light #1, 127.0.0.1
+Light #2, 127.0.0.2
+```
