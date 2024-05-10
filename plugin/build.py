@@ -21,7 +21,9 @@ OUTPUT_PATH = r"../build"
 import TPLinkTapoPlugin
 PLUGIN_VERSION = TPLinkTapoPlugin.__version__
 
-ADDITIONAL_FILES = []
+ADDITIONAL_FILES = [
+    "plugin-conf.txt"
+]
 
 ADDITIONAL_PYINSTALLER_ARGS = [
     "--log-level=WARN"

@@ -259,7 +259,7 @@ def main():
     if opts.l:
         logFile = None if opts.l.lower() == "none" else opts.l
     if opts.s:
-        if opts.S == "stderr": logStream = sys.stderr
+        if opts.s == "stderr": logStream = sys.stderr
         elif opts.s == "stdout": logStream = sys.stdout
         else: logStream = None
 
