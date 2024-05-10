@@ -1,3 +1,4 @@
 # Project dependencies
 TouchPortal-API
+pyinstaller
 tapo

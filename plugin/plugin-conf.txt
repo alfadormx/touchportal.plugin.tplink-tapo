@@ -1,0 +1,3 @@
+-d
+-l=TPLinkTapoPlugin.log
+-s=stderr
