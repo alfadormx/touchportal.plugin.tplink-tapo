@@ -131,7 +131,7 @@ TP_PLUGIN_ACTIONS = {
                 'label': "choice",
                 "valueChoices": []
             },
-            'dataBright': {
+            'bright': {
                 'id': PLUGIN_ID + ".Actions.Bright.Data.Bright",
                 'type': "number",
                 'minValue': 0,
@@ -158,7 +158,7 @@ TP_PLUGIN_ACTIONS = {
                 'label': "choice",
                 "valueChoices": []
             },
-            'dataBright': {
+            'rgb': {
                 'id': PLUGIN_ID + ".Actions.RGB.Data.RGB",
                 'type': "color",
                 'label': "color",
