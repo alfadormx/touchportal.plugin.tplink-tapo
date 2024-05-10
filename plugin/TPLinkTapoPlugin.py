@@ -195,6 +195,7 @@ def handleSettings(settings, on_connect=False):
         TP_PLUGIN_SETTINGS['configFile']['value'] = value
         if value.strip():
             readConfigFile(value.strip())
+            updateChoices()
     if (value := settings.get(TP_PLUGIN_SETTINGS['username']['name'])) is not None:
         TP_PLUGIN_SETTINGS['username']['value'] = value
     if (value := settings.get(TP_PLUGIN_SETTINGS['password']['name'])) is not None:
@@ -214,6 +215,15 @@ def readConfigFile(file_path):
     except Exception as e:
         g_log.error(f"Error reading file {file_path}: {repr(e)}")
         return []
+
+def updateChoices():
+    global device_list
+    choices = list(device_list.keys())
+
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
 
 ## TP Client event handler callbacks
 
