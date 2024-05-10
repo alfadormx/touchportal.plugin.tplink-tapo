@@ -91,6 +91,30 @@ TP_PLUGIN_ACTIONS = {
             },
         }
     },
+    'Toggle': {
+        'category': "general",
+        'id': PLUGIN_ID + ".Actions.Toggle",
+        'name': "Toggle Device",
+        'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
+        'type': "communicate",
+        'tryInline': True,
+        "doc": "Toggle Device",
+        'format': "Toggle $[1]",
+        'data': {
+            'deviceList': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": []
+            },
+            'unusedData': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.UnusedData",
+                'type': "number",
+                'label': "UnusedData",
+                "default": "50"
+            },
+        }
+    },
 }
 
 TP_PLUGIN_STATES = {
