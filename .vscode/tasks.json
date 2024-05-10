@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "tppsdk",
       "args": [
-        "plugin/plugin.py"
+        "plugin/TPLinkTapoPlugin.py"
       ],
       "group": {
         "kind": "build",

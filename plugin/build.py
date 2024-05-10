@@ -1,6 +1,6 @@
 from TouchPortalAPI import tppbuild
 
-pluginFileName = "plugin"
+pluginFileName = "TPLinkTapoPlugin"
 
 PLUGIN_MAIN = pluginFileName + ".py"
 
@@ -18,8 +18,8 @@ PLUGIN_ICON = r"icon-24.png"
 
 OUTPUT_PATH = r"../build"
 
-import plugin
-PLUGIN_VERSION = plugin.__version__
+import TPLinkTapoPlugin
+PLUGIN_VERSION = TPLinkTapoPlugin.__version__
 
 ADDITIONAL_FILES = []
 

@@ -2,7 +2,11 @@ import sys
 import TouchPortalAPI as TP
 
 from argparse import ArgumentParser
+
 from TouchPortalAPI.logger import Logger
+
+from tapo import ApiClient
+from tapo.requests import Color
 
 __version__ = 1.0
 
@@ -11,12 +15,13 @@ PLUGIN_ID = "mx.alfaor.touchportal.TPLinkTapoPlugin"
 TP_PLUGIN_INFO = {
     'sdk': 3,
     'version': int(float(__version__) * 100),  # TP only recognizes integer version numbers
-    'name': "TPLink's Tapo Resources by alFadorMX",
+    'name': "TPLink Tapo - alFadorMX",
     'id': PLUGIN_ID,
-    "plugin_start_cmd": "%TP_PLUGIN_FOLDER%plugin\\plugin.exe @plugin-conf.txt",
+    "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TPLinkTapoPlugin\\TPLinkTapoPlugin.exe @plugin-conf.txt",
     'configuration': {
         'colorDark': "#203060",
-        'colorLight': "#4070F0"
+        'colorLight': "#4070F0",
+        'parentCategory': "homeautomation"
     },
     "doc": {
         "repository": "alfadormx:touchportal.plugin.tplink-tapo"
@@ -24,27 +29,70 @@ TP_PLUGIN_INFO = {
 }
 
 TP_PLUGIN_SETTINGS = {
-    'example': {
-        'name': "Example Setting",
-        # "text" is the default type and could be omitted here
+    'configFile': {
+        'name': "Config File Path",
         'type': "text",
-        'default': "Example value",
+        'default': "",
         'readOnly': False,  # this is also the default
-        "doc": "example doc for example setting",
-        'value': None  # we can optionally use the settings struct to hold the current value
+        "doc": "File Path to Configuration File",
+        'value': None  
+    },
+    'username': {
+        'name': "Topo Username",
+        'type': "text",
+        'default': "",
+        'readOnly': False,  # this is also the default
+        "doc": "Username used to connect to TOPO light",
+        'value': None  
+    },
+    'password': {
+        'name': "Topo Password",
+        'type': "text",
+        'default': "",
+        'readOnly': False,  # this is also the default
+        "doc": "Password used to connect to TOPO light",
+        'value': None  
     },
 }
 
 TP_PLUGIN_CATEGORIES = {
     "General" : {
         'id': PLUGIN_ID + ".general",
-        'name': "General",
-        'imagepath': "icon.png"
+        'name': TP_PLUGIN_INFO['name'],
+        'imagepath': "%TP_PLUGIN_FOLDER%TPLinkTapoPlugin/icon-24.png"
     }
 }
 
 TP_PLUGIN_ACTIONS = {
-
+    'example': {
+        # 'category' is optional, if omitted then this action will be added to all, or the only, category(ies)
+        'category': "General",
+        'id': PLUGIN_ID + ".act.example",
+        'name': "Set Example Action",
+        'prefix': TP_PLUGIN_CATEGORIES['General']['name'],
+        'type': "communicate",
+        'tryInline': True,
+        "doc": "Example doc string",
+        # 'format' tokens like $[1] will be replaced in the generated JSON with the corresponding data id wrapped with "{$...$}".
+        # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
+        # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
+        'format': "Set Example State Text to $[text] and Color to $[2]",
+        'data': {
+            'text': {
+                'id': PLUGIN_ID + ".act.example.data.text",
+                # "text" is the default type and could be omitted here
+                'type': "text",
+                'label': "Text",
+                'default': "Hello World!"
+            },
+            'color': {
+                'id': PLUGIN_ID + ".act.example.data.color",
+                'type': "color",
+                'label': "Color",
+                'default': "#818181FF"
+            },
+        }
+    },
 }
 
 TP_PLUGIN_STATES = {
