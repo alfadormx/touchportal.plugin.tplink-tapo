@@ -6,7 +6,7 @@ PLUGIN_MAIN = pluginFileName + ".py"
 
 PLUGIN_EXE_NAME = pluginFileName
 
-PLUGIN_EXE_ICON = r"icon.png"
+PLUGIN_EXE_ICON = r"icon.ico"
 
 PLUGIN_ENTRY = PLUGIN_MAIN
 

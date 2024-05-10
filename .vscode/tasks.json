@@ -6,9 +6,7 @@
       "type": "shell",
       "command": "tppsdk",
       "args": [
-        "plugin/plugin.py",
-        "-o",
-        "build/entry.tp"
+        "plugin/plugin.py"
       ],
       "group": {
         "kind": "build",
