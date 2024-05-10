@@ -142,6 +142,30 @@ TP_PLUGIN_ACTIONS = {
             },
         }
     },
+    'RGB': {
+        'category': "general",
+        'id': PLUGIN_ID + ".Actions.RGB",
+        'name': "Change Color",
+        'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
+        'type': "communicate",
+        'tryInline': True,
+        "doc": "Change Brightness",
+        'format': "Change $[1] to color [2]",
+        'data': {
+            'deviceList': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": []
+            },
+            'dataBright': {
+                'id': PLUGIN_ID + ".Actions.DataRGB",
+                'type': "color",
+                'label': "color",
+                'default': "#000000FF"
+            },
+        }
+    },
 }
 
 TP_PLUGIN_STATES = {
