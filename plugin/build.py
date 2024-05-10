@@ -14,7 +14,7 @@ PLUGIN_ENTRY_INDENT = 2
 
 PLUGIN_ROOT = pluginFileName
 
-PLUGIN_ICON = r"icon.png"
+PLUGIN_ICON = r"icon-24.png"
 
 OUTPUT_PATH = r"../build"
 
