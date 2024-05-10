@@ -187,19 +187,36 @@ except Exception as e:
 
 g_log = Logger(name = PLUGIN_ID)
 device_list = {}
+tapoClient = None
 
 def handleSettings(settings, on_connect=False):
-    # settings flatteting
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
-    if (value := settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])) is not None:
-        TP_PLUGIN_SETTINGS['configFile']['value'] = value
-        if value.strip():
-            readConfigFile(value.strip())
+    config_value = settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])
+    username_value = settings.get(TP_PLUGIN_SETTINGS['username']['name'])
+    password_value = settings.get(TP_PLUGIN_SETTINGS['password']['name'])
+
+    if config_value and config_value.strip():
+        TP_PLUGIN_SETTINGS['configFile']['value'] = config_value.strip()
+        try:
+            readConfigFile(config_value.strip())
             updateChoices()
-    if (value := settings.get(TP_PLUGIN_SETTINGS['username']['name'])) is not None:
-        TP_PLUGIN_SETTINGS['username']['value'] = value
-    if (value := settings.get(TP_PLUGIN_SETTINGS['password']['name'])) is not None:
-        TP_PLUGIN_SETTINGS['password']['value'] = value
+        except Exception as e:
+            g_log.error(f"Failed to process config file: {e}")
+
+    if username_value:
+        TP_PLUGIN_SETTINGS['username']['value'] = username_value
+    if password_value:
+        TP_PLUGIN_SETTINGS['password']['value'] = password_value
+
+    if username_value and password_value:
+        try:
+            initializeTapo()
+        except Exception as e:
+            g_log.error(f"Failed to initialize Tapo client: {e}")
+
+def initializeTapo():
+    global tapoClient
+    tapoClient = ApiClient(TP_PLUGIN_SETTINGS['username']['value'], TP_PLUGIN_SETTINGS['password']['value'])
 
 def readConfigFile(file_path):
     global device_list
