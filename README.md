@@ -31,9 +31,10 @@ This file only configures the plugin execution, it is used when launching the ex
 In any case you will be able to see logs too on TP's Logs tab.
 
 ### lights config file
-Comma separated file with (optional) HEADER where the first column is a 'name' and the second column is the light's IP address:
-```Markdown
-NAME,IPADDRESS
-Light #1, 127.0.0.1
-Light #2, 127.0.0.2
+JSON file with the light's 'pseudo' and IP address:
+```json
+{
+    "Light #1": "127.0.0.1",
+    "Light #2": "127.0.0.2"
+}
 ```

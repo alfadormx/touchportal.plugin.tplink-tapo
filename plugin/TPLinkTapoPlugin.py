@@ -1,6 +1,6 @@
 import sys
 import TouchPortalAPI as TP
-import csv
+import json
 
 from argparse import ArgumentParser
 
@@ -186,7 +186,7 @@ except Exception as e:
     sys.exit(f"Could not create TP Client, exiting. Error was:\n{repr(e)}")
 
 g_log = Logger(name = PLUGIN_ID)
-
+device_list = {}
 
 def handleSettings(settings, on_connect=False):
     # settings flatteting
@@ -194,52 +194,23 @@ def handleSettings(settings, on_connect=False):
     if (value := settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])) is not None:
         TP_PLUGIN_SETTINGS['configFile']['value'] = value
         if value.strip():
-            file_data = readConfigFile(value.strip())
-            if file_data is None:
-                g_log.error("Failed to read configuration file.")
-            else:
-                g_log.info("Configuraiton file read successfully!")
+            readConfigFile(value.strip())
     if (value := settings.get(TP_PLUGIN_SETTINGS['username']['name'])) is not None:
         TP_PLUGIN_SETTINGS['username']['value'] = value
     if (value := settings.get(TP_PLUGIN_SETTINGS['password']['name'])) is not None:
         TP_PLUGIN_SETTINGS['password']['value'] = value
 
 def readConfigFile(file_path):
+    global device_list
+
     try:
         with open(file_path, 'r') as file:
-            csv_reader = csv_reader(file)
-            data_dict = {}
-            header_checked = False
-
-            for index, row in enumerate(csv_reader):
-                processed_row = [item.strip().lower() for item in row]
-
-                if not header_checked:
-                    if len(processed_row) == 2:
-                        if processed_row[0] == "name" and processed_row[1] == "ipaddress":
-                            header_checked = True
-                            continue
-                        elif index == 0:
-                            header_checked = True
-                        else:
-                            raise ValueError("CSV does not have a valid header or the correct format.")
-                    else:
-                        raise ValueError("CSV must have exactly two columns.")
-
-                if len(row) != 2:
-                    raise ValueError("Each row in the CSV file must contain exactly two entries.")
-
-                # Store in dictionary
-                name_key = row[0].strip()
-                data_dict[name_key] = row[1].stip()
-
-            return data_dict
+            device_list = json.load(file)
     except FileNotFoundError:
         g_log.error(f"File not found: {file_path}")
         return []
-    except ValueError as ve:
-        g_log.error(f"Data format error in file {file_path}: {ve}")
-        return []
+    except json.JSONDecodeError as e:
+        g_log.error(f"Error decoding JSON from file {file_path}: {e}")
     except Exception as e:
         g_log.error(f"Error reading file {file_path}: {repr(e)}")
         return []
