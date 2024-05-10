@@ -102,7 +102,7 @@ TP_PLUGIN_ACTIONS = {
         'format': "Toggle $[1]",
         'data': {
             'deviceList': {
-                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'id': PLUGIN_ID + ".Actions.Toggle.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": []
