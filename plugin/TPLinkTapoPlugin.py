@@ -115,6 +115,33 @@ TP_PLUGIN_ACTIONS = {
             },
         }
     },
+    'Bright': {
+        'category': "general",
+        'id': PLUGIN_ID + ".Actions.Bright",
+        'name': "Change Brightness",
+        'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
+        'type': "communicate",
+        'tryInline': True,
+        "doc": "Change Brightness",
+        'format': "Change $[1] to brightness [2]",
+        'data': {
+            'deviceList': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": []
+            },
+            'dataBright': {
+                'id': PLUGIN_ID + ".Actions.DataBright",
+                'type': "number",
+                'minValue': "0",
+                'maxValue': "100",
+                'allowDecimals': "false",
+                'label': "Brightness",
+                "default": "100"
+            },
+        }
+    },
 }
 
 TP_PLUGIN_STATES = {
