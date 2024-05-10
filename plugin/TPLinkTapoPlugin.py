@@ -123,7 +123,7 @@ TP_PLUGIN_ACTIONS = {
         'type': "communicate",
         'tryInline': True,
         "doc": "Change Brightness",
-        'format': "Change $[1] to brightness $[2]",
+        'format': "Change $[1] to brightness $[2] %",
         'data': {
             'deviceList': {
                 'id': PLUGIN_ID + ".Actions.Bright.Data.DeviceList",
@@ -168,9 +168,7 @@ TP_PLUGIN_ACTIONS = {
     },
 }
 
-TP_PLUGIN_STATES = {
-
-}
+TP_PLUGIN_STATES = {}
 
 TP_PLUGIN_EVENTS = {}
 
