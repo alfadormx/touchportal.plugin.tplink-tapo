@@ -38,7 +38,7 @@ TP_PLUGIN_SETTINGS = {
         'value': None  
     },
     'username': {
-        'name': "Topo Username",
+        'name': "Username",
         'type': "text",
         'default': "",
         'readOnly': False,  # this is also the default
@@ -46,7 +46,7 @@ TP_PLUGIN_SETTINGS = {
         'value': None  
     },
     'password': {
-        'name': "Topo Password",
+        'name': "Password",
         'type': "text",
         'default': "",
         'readOnly': False,  # this is also the default
@@ -190,8 +190,12 @@ g_log = Logger(name = PLUGIN_ID)
 def handleSettings(settings, on_connect=False):
     # settings flatteting
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
-    if (value := settings.get(TP_PLUGIN_SETTINGS['example']['name'])) is not None:
-        TP_PLUGIN_SETTINGS['example']['value'] = value
+    if (value := settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])) is not None:
+        TP_PLUGIN_SETTINGS['configFile']['value'] = value
+    if (value := settings.get(TP_PLUGIN_SETTINGS['username']['name'])) is not None:
+        TP_PLUGIN_SETTINGS['username']['value'] = value
+    if (value := settings.get(TP_PLUGIN_SETTINGS['password']['name'])) is not None:
+        TP_PLUGIN_SETTINGS['password']['value'] = value
 
 ## TP Client event handler callbacks
 
