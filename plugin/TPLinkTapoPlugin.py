@@ -56,7 +56,7 @@ TP_PLUGIN_SETTINGS = {
 }
 
 TP_PLUGIN_CATEGORIES = {
-    "General" : {
+    "general" : {
         'id': PLUGIN_ID + ".general",
         'name': TP_PLUGIN_INFO['name'],
         'imagepath': "%TP_PLUGIN_FOLDER%TPLinkTapoPlugin/icon-24.png"
@@ -64,32 +64,30 @@ TP_PLUGIN_CATEGORIES = {
 }
 
 TP_PLUGIN_ACTIONS = {
-    'example': {
-        # 'category' is optional, if omitted then this action will be added to all, or the only, category(ies)
-        'category': "General",
-        'id': PLUGIN_ID + ".act.example",
-        'name': "Set Example Action",
-        'prefix': TP_PLUGIN_CATEGORIES['General']['name'],
+    'OnOffTrigger': {
+        'category': "general",
+        'id': PLUGIN_ID + ".Actions.OnOffTrigger",
+        'name': "Turn Device Off and On",
+        'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Example doc string",
-        # 'format' tokens like $[1] will be replaced in the generated JSON with the corresponding data id wrapped with "{$...$}".
-        # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
-        # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
-        'format': "Set Example State Text to $[text] and Color to $[2]",
+        "doc": "Turn Device Off and On",
+        'format': "Turn $[2] $[1]",
         'data': {
-            'text': {
-                'id': PLUGIN_ID + ".act.example.data.text",
-                # "text" is the default type and could be omitted here
-                'type': "text",
-                'label': "Text",
-                'default': "Hello World!"
+            'on&off': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.On&Off",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": [
+                    "OFF",
+                    "ON"
+                ]
             },
-            'color': {
-                'id': PLUGIN_ID + ".act.example.data.color",
-                'type': "color",
-                'label': "Color",
-                'default': "#818181FF"
+            'deviceList': {
+                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": []
             },
         }
     },
