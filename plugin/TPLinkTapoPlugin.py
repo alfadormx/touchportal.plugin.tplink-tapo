@@ -123,22 +123,22 @@ TP_PLUGIN_ACTIONS = {
         'type': "communicate",
         'tryInline': True,
         "doc": "Change Brightness",
-        'format': "Change $[1] to brightness [2]",
+        'format': "Change $[1] to brightness $[2]",
         'data': {
             'deviceList': {
-                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+                'id': PLUGIN_ID + ".Actions.Bright.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": []
             },
             'dataBright': {
-                'id': PLUGIN_ID + ".Actions.DataBright",
+                'id': PLUGIN_ID + ".Actions.Bright.Data.Bright",
                 'type': "number",
-                'minValue': "0",
-                'maxValue': "100",
-                'allowDecimals': "false",
+                'minValue': 0,
+                'maxValue': 100,
+                'allowDecimals': False,
                 'label': "Brightness",
-                "default": "100"
+                "default": 100
             },
         }
     },
