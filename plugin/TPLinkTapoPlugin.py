@@ -108,7 +108,7 @@ TP_PLUGIN_ACTIONS = {
                 "valueChoices": []
             },
             'unusedData': {
-                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.UnusedData",
+                'id': PLUGIN_ID + ".Actions.UnusedData",
                 'type': "number",
                 'label': "UnusedData",
                 "default": "50"
