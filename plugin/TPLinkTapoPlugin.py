@@ -10,7 +10,7 @@ from tapo.requests import Color
 
 __version__ = 1.0
 
-PLUGIN_ID = "mx.alfaor.touchportal.TPLinkTapoPlugin"
+PLUGIN_ID = "mx.alfador.touchportal.TPLinkTapoPlugin"
 
 TP_PLUGIN_INFO = {
     'sdk': 3,
