@@ -184,10 +184,10 @@ except Exception as e:
     sys.exit(f"Could not create TP Client, exiting. Error was:\n{repr(e)}")
 
 g_log = Logger(name = PLUGIN_ID)
-device_list = {}
-tapoClient = None
+g_device_list = {}
+g_tapo_client = None
 
-def handleSettings(settings, on_connect=False):
+def handle_settings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
     config_value = settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])
     username_value = settings.get(TP_PLUGIN_SETTINGS['username']['name'])
@@ -196,10 +196,10 @@ def handleSettings(settings, on_connect=False):
     if config_value and config_value.strip():
         TP_PLUGIN_SETTINGS['configFile']['value'] = config_value.strip()
         try:
-            readConfigFile(config_value.strip())
-            updateChoices()
+            read_config_file(config_value.strip())
+            update_choices()
         except Exception as e:
-            g_log.error(f"Failed to process config file: {e}")
+            g_log.warning(f"Failed to process config file: {e}")
     if username_value:
         TP_PLUGIN_SETTINGS['username']['value'] = username_value
     if password_value:
@@ -218,23 +218,23 @@ def handleSettings(settings, on_connect=False):
             g_log.debug(f"Event loop is running: {loop.is_running()}")
             if loop.is_running():
                 g_log.debug("Creating task for initializeTapo")
-                loop.create_task(initializeTapo(username_value, password_value))
+                loop.create_task(initialize_tapo(username_value, password_value))
             else:
                 g_log.debug("Running initiliazeTapo directly")
-                asyncio.run(initializeTapo(username_value, password_value))
+                asyncio.run(initialize_tapo(username_value, password_value))
         except Exception as e:
-            g_log.error(f"Failed to initialize Tapo client: {e}")
+            g_log.warning(f"Failed to initialize Tapo client: {e}")
 
-async def initializeTapo(username, password) -> None:
-    global tapoClient
+async def initialize_tapo(username, password) -> None:
+    global g_tapo_client
 
-    tapoClient = ApiClient(username, password)
+    g_tapo_client = ApiClient(username, password)
     g_log.debug(f"initializeTapo: tapoClient is set with u> {username} & p> {password}")
 
-    tasks = [fetch_device(tapoClient, device) for device in device_list]
+    tasks = [fetch_device(g_tapo_client, device) for device in g_device_list]
     results = await asyncio.gather(*tasks, return_exceptions=True)
-    
-    for device, result in zip(device_list, results):
+
+    for device, result in zip(g_device_list, results):
         if isinstance(result, Exception):
             device["device"] = None
         else:
@@ -242,64 +242,92 @@ async def initializeTapo(username, password) -> None:
 
 async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[Any]:
     try:
+        g_log.debug(f"trying fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']}")
         device = await client.l630(device_info["ipaddress"])
-        g_log.info(f"fetch_device {repr(device)}")
+        g_log.debug(f"fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']} OK!")
         return device
     except Exception as e:
-        g_log.error(f"Error fetching data for {device_info['name']}: {e}")
+        g_log.warning(f"Error fetching data for {device_info['name']}: {e}")
         return None
 
-def readConfigFile(file_path) -> None:
-    global device_list
+def read_config_file(file_path) -> None:
+    global g_device_list
 
     try:
         with open(file_path, 'r') as file:
             data = json.load(file)
-            device_list = [{'name': name, 'ipaddress': ip} for name, ip in data.items()]
-            g_log.info(f"Config file: {file_path} read with info {data}")
+            g_device_list = [{'name': name, 'ipaddress': ip} for name, ip in data.items()]
+            g_log.debug(f"Config file: {file_path} read with info {data}")
     except Exception as e:
-        g_log.error(f"Error reading file {file_path}: {repr(e)}")
+        g_log.warning(f"Error reading file {file_path}: {repr(e)}")
         return []
 
-def updateChoices() -> None:
-    global device_list
-    choices = [device['name'] for device in device_list]
+def update_choices() -> None:
+    global g_device_list
+    choices = [device['name'] for device in g_device_list]
 
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
 
-def onOffTrigger(action_data:list) -> None:
+def on_off_trigger(action_data:list) -> None:
+    g_log.debug(f"but not here!")
     onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
     device = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
-    g_log.debug(f"Action pressed: {onOff} - {device}")
+    light = g_device_list[device]
+    g_log.debug(f"on_off_trigger: a> {onOff} d> {device} l> {repr(light)}")
+
+    if (onOff == "ON"):
+        run_async_from_sync(light.on)
+    else:
+        run_async_from_sync(light.off)
+
+def run_async_from_sync(async_func):
+    g_log.debug(f"trying to run_async_from_sync")
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Event loop is closed")
+    except RuntimeError as ex:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    try:
+        if loop.is_running():
+            return loop.create_task(async_func())
+        else:
+            return loop.run_until_complete(async_func())
+    except Exception as e:
+        g_log.warning(f"Failed to execute {async_func.__name__}: {e}")
 
 ## TP Client event handler callbacks
 
 # Initial connection handler
 @TPClient.on(TP.TYPES.onConnect)
-def onConnect(data):
+def on_connect(data):
     g_log.info(f"Connected to TP v{data.get('tpVersionString', '?')}, plugin v{data.get('pluginVersion', '?')}.")
     g_log.debug(f"Connection: {data}")
     if settings := data.get('settings'):
-        handleSettings(settings, True)
+        handle_settings(settings, True)
 
 # Settings handler
 @TPClient.on(TP.TYPES.onSettingUpdate)
-def onSettingUpdate(data):
+def on_setting_update(data):
     g_log.debug(f"Settings: {data}")
     if (settings := data.get('values')):
-        handleSettings(settings, False)
+        handle_settings(settings, False)
 
 # Action handler
 @TPClient.on(TP.TYPES.onAction)
-def onAction(data):
+def on_action(data):
     g_log.debug(f"Action: {data}")
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
     if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
-        onOffTrigger(action_data)
+        g_log.warn("HERE !!!")
+        on_off_trigger(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
         print()
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
@@ -317,7 +345,7 @@ def onShutdown(data):
 # Error handler
 @TPClient.on(TP.TYPES.onError)
 def onError(exc):
-    g_log.error(f'Error in TP Client event handler: {repr(exc)}')
+    g_log.warning(f'Error in TP Client event handler: {repr(exc)}')
 
 ## main
 
@@ -368,7 +396,7 @@ def main():
         g_log.warning("Caught keyboard interrupt, exiting.")
     except Exception:
         from traceback import format_exc
-        g_log.error(f"Exception in TP Client:\n{format_exc()}")
+        g_log.warning(f"Exception in TP Client:\n{format_exc()}")
         ret = -1
     finally:
         TPClient.disconnect()
