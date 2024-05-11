@@ -200,7 +200,6 @@ def handleSettings(settings, on_connect=False):
             updateChoices()
         except Exception as e:
             g_log.error(f"Failed to process config file: {e}")
-
     if username_value:
         TP_PLUGIN_SETTINGS['username']['value'] = username_value
     if password_value:
@@ -208,21 +207,33 @@ def handleSettings(settings, on_connect=False):
 
     if username_value and password_value:
         try:
-            loop = asyncio.get_event_loop()
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("Event loop is closed")
+            except RuntimeError as ex:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            g_log.debug(f"Event loop is running: {loop.is_running()}")
             if loop.is_running():
-                loop.create_task(initializeTapo())
+                g_log.debug("Creating task for initializeTapo")
+                loop.create_task(initializeTapo(username_value, password_value))
             else:
-                asyncio.run(initializeTapo())
+                g_log.debug("Running initiliazeTapo directly")
+                asyncio.run(initializeTapo(username_value, password_value))
         except Exception as e:
             g_log.error(f"Failed to initialize Tapo client: {e}")
 
-async def initializeTapo() -> None:
+async def initializeTapo(username, password) -> None:
     global tapoClient
-    tapoClient = ApiClient(TP_PLUGIN_SETTINGS['username']['value'], TP_PLUGIN_SETTINGS['password']['value'])
-    
+
+    tapoClient = ApiClient(username, password)
+    g_log.debug(f"initializeTapo: tapoClient is set with u> {username} & p> {password}")
+
     tasks = [fetch_device(tapoClient, device) for device in device_list]
     results = await asyncio.gather(*tasks, return_exceptions=True)
-
+    
     for device, result in zip(device_list, results):
         if isinstance(result, Exception):
             device["device"] = None
