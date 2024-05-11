@@ -5,7 +5,7 @@ import asyncio
 from typing import Any, Dict, Optional
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
-from tapo import ApiClient, ColorLightHandler
+from tapo import ApiClient
 
 __version__ = 1.0
 
@@ -208,7 +208,11 @@ def handleSettings(settings, on_connect=False):
 
     if username_value and password_value:
         try:
-            initializeTapo()
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(initializeTapo())
+            else:
+                asyncio.run(initializeTapo())
         except Exception as e:
             g_log.error(f"Failed to initialize Tapo client: {e}")
 
@@ -225,9 +229,11 @@ async def initializeTapo() -> None:
         else:
             device["device"] = result
 
-async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[ColorLightHandler]:
+async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[Any]:
     try:
-        return await client.l630(device_info["ipaddress"])
+        device = await client.l630(device_info["ipaddress"])
+        g_log.info(f"fetch_device {repr(device)}")
+        return device
     except Exception as e:
         g_log.error(f"Error fetching data for {device_info['name']}: {e}")
         return None
@@ -239,18 +245,24 @@ def readConfigFile(file_path) -> None:
         with open(file_path, 'r') as file:
             data = json.load(file)
             device_list = [{'name': name, 'ipaddress': ip} for name, ip in data.items()]
+            g_log.info(f"Config file: {file_path} read with info {data}")
     except Exception as e:
         g_log.error(f"Error reading file {file_path}: {repr(e)}")
         return []
 
-def updateChoices():
+def updateChoices() -> None:
     global device_list
-    choices = list(device_list.keys())
+    choices = [device['name'] for device in device_list]
 
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
+
+def onOffTrigger(action_data:list) -> None:
+    onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
+    device = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
+    g_log.debug(f"Action pressed: {onOff} - {device}")
 
 ## TP Client event handler callbacks
 
@@ -276,7 +288,7 @@ def onAction(data):
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
     if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
-        print()
+        onOffTrigger(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
         print()
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
