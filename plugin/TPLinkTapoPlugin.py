@@ -272,35 +272,45 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
 
 def on_off_trigger(action_data:list) -> None:
-    g_log.debug(f"but not here!")
     onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
-    device = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
-    light = g_device_list[device]
-    g_log.debug(f"on_off_trigger: a> {onOff} d> {device} l> {repr(light)}")
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
+    light = get_device_by_name(device_name)
+    g_log.debug(f"on_off_trigger: a> {onOff} d> {device_name} l> {repr(light)}")
 
     if (onOff == "ON"):
-        run_async_from_sync(light.on)
+        asyncio.run(light.on())
+        #run_async_from_sync(light.on)
     else:
-        run_async_from_sync(light.off)
+        asyncio.run(light.off())
+        #run_async_from_sync(light.off)
 
 def run_async_from_sync(async_func):
     g_log.debug(f"trying to run_async_from_sync")
 
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            raise RuntimeError("Event loop is closed")
-    except RuntimeError as ex:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    try:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError("Event loop is closed")
+        except RuntimeError as ex:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        g_log.debug(f"Event loop is running: {loop.is_running()}")
         if loop.is_running():
-            return loop.create_task(async_func())
+            g_log.debug("Creating task for initializeTapo")
+            loop.create_task(async_func())
         else:
-            return loop.run_until_complete(async_func())
+            g_log.debug(f"Running {async_func.__name__} directly")
+            asyncio.run(async_func())
     except Exception as e:
         g_log.warning(f"Failed to execute {async_func.__name__}: {e}")
+
+def get_device_by_name(device_name):
+    for device in g_device_list:
+        if device['name'] == device_name:
+            return device['device']  # Returns the ColorLightHandler object
+    return None  # Return None if not found
 
 ## TP Client event handler callbacks
 
@@ -326,7 +336,6 @@ def on_action(data):
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
     if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
-        g_log.warn("HERE !!!")
         on_off_trigger(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
         print()
