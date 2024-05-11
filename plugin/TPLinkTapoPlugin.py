@@ -1,13 +1,11 @@
 import sys
 import TouchPortalAPI as TP
 import json
-
+import asyncio
+from typing import Any, Dict, Optional
 from argparse import ArgumentParser
-
 from TouchPortalAPI.logger import Logger
-
-from tapo import ApiClient
-from tapo.requests import Color
+from tapo import ApiClient, ColorLightHandler
 
 __version__ = 1.0
 
@@ -214,21 +212,33 @@ def handleSettings(settings, on_connect=False):
         except Exception as e:
             g_log.error(f"Failed to initialize Tapo client: {e}")
 
-def initializeTapo():
+async def initializeTapo() -> None:
     global tapoClient
     tapoClient = ApiClient(TP_PLUGIN_SETTINGS['username']['value'], TP_PLUGIN_SETTINGS['password']['value'])
+    
+    tasks = [fetch_device(tapoClient, device) for device in device_list]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-def readConfigFile(file_path):
+    for device, result in zip(device_list, results):
+        if isinstance(result, Exception):
+            device["device"] = None
+        else:
+            device["device"] = result
+
+async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[ColorLightHandler]:
+    try:
+        return await client.l630(device_info["ipaddress"])
+    except Exception as e:
+        g_log.error(f"Error fetching data for {device_info['name']}: {e}")
+        return None
+
+def readConfigFile(file_path) -> None:
     global device_list
 
     try:
         with open(file_path, 'r') as file:
-            device_list = json.load(file)
-    except FileNotFoundError:
-        g_log.error(f"File not found: {file_path}")
-        return []
-    except json.JSONDecodeError as e:
-        g_log.error(f"Error decoding JSON from file {file_path}: {e}")
+            data = json.load(file)
+            device_list = [{'name': name, 'ipaddress': ip} for name, ip in data.items()]
     except Exception as e:
         g_log.error(f"Error reading file {file_path}: {repr(e)}")
         return []
@@ -265,7 +275,16 @@ def onAction(data):
     g_log.debug(f"Action: {data}")
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
-    pass
+    if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
+        print()
+    elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
+        print()
+    elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
+        print()
+    elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
+        print()
+    else:
+        g_log.warning("Got unknown action ID: " + aid)
 
 # Shutdown handler
 @TPClient.on(TP.TYPES.onShutdown)
