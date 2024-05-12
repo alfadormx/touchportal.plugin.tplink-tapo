@@ -339,7 +339,7 @@ async def brightness_action(action_data:list) -> None:
     g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
     
     if (light):
-        await light.set_brightness(brightness)
+        await light.set_brightness(int(brightness))
 
 @async_to_sync
 async def rgb_action(action_data:list) -> None:
@@ -364,7 +364,7 @@ async def rgb_bright_action(action_data:list) -> None:
 
     if (light):
         hue, saturation = hex_to_hue_saturation(rgb)
-        await light.set().brightness(brightness).hue_saturation(hue, saturation).send(light)
+        await light.set().brightness(int(brightness)).hue_saturation(hue, saturation).send(light)
 
 def hex_to_hue_saturation(hex_color):
     hex_color = hex_color.lstrip("#")
