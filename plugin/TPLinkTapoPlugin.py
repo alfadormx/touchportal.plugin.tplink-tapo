@@ -287,9 +287,10 @@ async def brightness_action(action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
-    g_log.debug(f"bright_trigger: d> {device_name} b> {brightness}% l> {repr(light)}")
+    g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
     
-    await light.set_brightness(brightness)
+    if (light):
+        await light.set_brightness(brightness)
 
 def get_device_by_name(device_name):
     for device in g_device_list:
