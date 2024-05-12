@@ -372,7 +372,7 @@ def hex_to_hue_saturation(hex_color):
     r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
     h, s, _ = colorsys.rgb_to_hsv(r_norm, g_norm, b_norm)
     hue = max(5, min(255, int(h * 360)))
-    saturation = int(s * 100)
+    saturation = max(1, min(99, int(s * 100)))
 
     return hue, saturation    
 
