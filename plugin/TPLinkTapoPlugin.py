@@ -1,3 +1,4 @@
+import colorsys
 from functools import wraps
 import sys
 import TouchPortalAPI as TP
@@ -292,6 +293,28 @@ async def brightness_action(action_data:list) -> None:
     if (light):
         await light.set_brightness(brightness)
 
+@async_to_sync
+async def rgb_action(action_data:list) -> None:
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'])
+    rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
+    light = get_device_by_name(device_name)
+
+    g_log.debug(f"rgb: d> {device_name} r> {rgb} l> {repr(light)}")
+
+    if (light):
+        hue, saturation = hex_to_hue_saturation(rgb)
+        await light.set_hue_saturation(hue, saturation)
+
+def hex_to_hue_saturation(hex_color):
+    hex_color = hex_color.lstrip("#")
+    r, g, b, a = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16), int(hex_color[6:8], 16)
+    r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
+    h, s, _ = colorsys.rgb_to_hsv(r_norm, g_norm, b_norm)
+    hue = int(h * 360)
+    saturation = int(s * 100)
+
+    return hue, saturation    
+
 def get_device_by_name(device_name):
     for device in g_device_list:
         if device['name'] == device_name:
@@ -328,7 +351,7 @@ def on_action(data):
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
         brightness_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
-        print()
+        rgb_action(action_data)
     else:
         g_log.warning("Got unknown action ID: " + aid)
 
