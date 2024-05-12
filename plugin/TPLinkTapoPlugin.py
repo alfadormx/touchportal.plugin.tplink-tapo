@@ -178,19 +178,19 @@ TP_PLUGIN_ACTIONS = {
         'format': "Change $[1] to color $[2] and brightness $[3]",
         'data': {
             'deviceList': {
-                'id': PLUGIN_ID + ".Actions.RGB.Data.DeviceList",
+                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": []
             },
             'rgb': {
-                'id': PLUGIN_ID + ".Actions.RGB.Data.RGB",
+                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.RGB",
                 'type': "color",
                 'label': "color",
                 'default': "#000000FF"
             },
             'bright': {
-                'id': PLUGIN_ID + ".Actions.Bright.Data.Bright",
+                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.Bright",
                 'type': "number",
                 'minValue': 0,
                 'maxValue': 100,
