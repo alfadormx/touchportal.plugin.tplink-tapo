@@ -303,6 +303,7 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB-Bright']['data']['deviceList']['id'], choices)
 
 @async_to_sync
 async def on_off_trigger_action(action_data:list) -> None:
