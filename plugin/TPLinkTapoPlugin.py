@@ -284,6 +284,20 @@ async def on_off_trigger_action(action_data:list) -> None:
         await light.off()
 
 @async_to_sync
+async def toggle_action(action_data:list) -> None:
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'])
+    light = get_device_by_name(device_name)
+    g_log.debug(f"toggle: d> {device_name} l> {repr(light)}")
+
+    if (light):
+        device_info = await light.get_device_info()
+        g_log.debug(f"device_info: {repr(device_info)}")
+        if (device_info.device_on):
+            await light.off()
+        else:
+            await light.on()
+
+@async_to_sync
 async def brightness_action(action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
@@ -347,7 +361,7 @@ def on_action(data):
     if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
         on_off_trigger_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
-        print()
+        toggle_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
         brightness_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
