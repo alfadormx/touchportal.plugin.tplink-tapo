@@ -1,8 +1,9 @@
+from functools import wraps
 import sys
 import TouchPortalAPI as TP
 import json
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Awaitable, Dict, Optional, TypeVar
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient
@@ -187,7 +188,22 @@ g_log = Logger(name = PLUGIN_ID)
 g_device_list = {}
 g_tapo_client = None
 
-def handle_settings(settings, on_connect=False):
+R = TypeVar("R")
+
+def async_to_sync(func: Awaitable[R]) -> R:
+    '''Wraps `asyncio.run` on an async function making it sync callable.'''
+    if not asyncio.iscoroutinefunction(func):
+        raise TypeError(f"{func} is not a coroutine function")
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
+        except RuntimeError:
+            return asyncio.new_event_loop().run_until_complete(func(*args, **kwargs))
+    return wrapper
+
+@async_to_sync
+async def handle_settings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
     config_value = settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])
     username_value = settings.get(TP_PLUGIN_SETTINGS['username']['name'])
@@ -206,24 +222,7 @@ def handle_settings(settings, on_connect=False):
         TP_PLUGIN_SETTINGS['password']['value'] = password_value
 
     if username_value and password_value:
-        try:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    raise RuntimeError("Event loop is closed")
-            except RuntimeError as ex:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            g_log.debug(f"Event loop is running: {loop.is_running()}")
-            if loop.is_running():
-                g_log.debug("Creating task for initializeTapo")
-                loop.create_task(initialize_tapo(username_value, password_value))
-            else:
-                g_log.debug("Running initiliazeTapo directly")
-                asyncio.run(initialize_tapo(username_value, password_value))
-        except Exception as e:
-            g_log.warning(f"Failed to initialize Tapo client: {e}")
+        await initialize_tapo(username_value, password_value)
 
 async def initialize_tapo(username, password) -> None:
     global g_tapo_client
@@ -271,40 +270,17 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
 
-def on_off_trigger(action_data:list) -> None:
+@async_to_sync
+async def on_off_trigger(action_data:list) -> None:
     onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
     light = get_device_by_name(device_name)
     g_log.debug(f"on_off_trigger: a> {onOff} d> {device_name} l> {repr(light)}")
 
-    if (onOff == "ON"):
-        asyncio.run(light.on())
-        #run_async_from_sync(light.on)
+    if (onOff == "ON" and light):
+        await light.on()
     else:
-        asyncio.run(light.off())
-        #run_async_from_sync(light.off)
-
-def run_async_from_sync(async_func):
-    g_log.debug(f"trying to run_async_from_sync")
-
-    try:
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                raise RuntimeError("Event loop is closed")
-        except RuntimeError as ex:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        g_log.debug(f"Event loop is running: {loop.is_running()}")
-        if loop.is_running():
-            g_log.debug("Creating task for initializeTapo")
-            loop.create_task(async_func())
-        else:
-            g_log.debug(f"Running {async_func.__name__} directly")
-            asyncio.run(async_func())
-    except Exception as e:
-        g_log.warning(f"Failed to execute {async_func.__name__}: {e}")
+        await light.off()
 
 def get_device_by_name(device_name):
     for device in g_device_list:
@@ -414,7 +390,6 @@ def main():
 
     g_log.info(f"{TP_PLUGIN_INFO['name']} stopped.")
     return ret
-
 
 if __name__ == "__main__":
     sys.exit(main())
