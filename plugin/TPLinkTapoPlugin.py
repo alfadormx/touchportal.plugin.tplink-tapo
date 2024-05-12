@@ -271,7 +271,7 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
 
 @async_to_sync
-async def on_off_trigger(action_data:list) -> None:
+async def on_off_trigger_action(action_data:list) -> None:
     onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
     light = get_device_by_name(device_name)
@@ -283,7 +283,7 @@ async def on_off_trigger(action_data:list) -> None:
         await light.off()
 
 @async_to_sync
-async def brightness(action_data:list) -> None:
+async def brightness_action(action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
@@ -321,11 +321,11 @@ def on_action(data):
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
     if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
-        on_off_trigger(action_data)
+        on_off_trigger_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
         print()
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
-        brightness(action_data)
+        brightness_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
         print()
     else:
