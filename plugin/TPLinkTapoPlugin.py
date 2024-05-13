@@ -65,18 +65,18 @@ TP_PLUGIN_CATEGORIES = {
 }
 
 TP_PLUGIN_ACTIONS = {
-    'OnOffTrigger': {
+    'On_Off': {
         'category': "general",
-        'id': PLUGIN_ID + ".Actions.OnOffTrigger",
-        'name': "Turn Device Off and On",
+        'id': PLUGIN_ID + ".Actions.On_Off",
+        'name': "Turn Device on or off",
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Turn Device Off and On",
+        "doc": "Turn Device *on* or *off*",
         'format': "Turn $[2] $[1]",
         'data': {
-            'on&off': {
-                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.On&Off",
+            'on_off': {
+                'id': PLUGIN_ID + ".Actions.On_Off.Data.OnOff",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": [
@@ -84,8 +84,8 @@ TP_PLUGIN_ACTIONS = {
                     "ON"
                 ]
             },
-            'deviceList': {
-                'id': PLUGIN_ID + ".Actions.OnOffTrigger.Data.DeviceList",
+            'device_list': {
+                'id': PLUGIN_ID + ".Actions.On_Off.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": []
@@ -99,10 +99,10 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Toggle Device",
+        "doc": "Turns *on* or *off* a device accordingly",
         'format': "Toggle $[1]",
         'data': {
-            'deviceList': {
+            'device_list': {
                 'id': PLUGIN_ID + ".Actions.Toggle.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
@@ -119,14 +119,14 @@ TP_PLUGIN_ACTIONS = {
     'Bright': {
         'category': "general",
         'id': PLUGIN_ID + ".Actions.Bright",
-        'name': "Change Brightness",
+        'name': "Set Brightness",
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Change Brightness",
+        "doc": "Set *Brightness* and turns *on* the device",
         'format': "Change $[1] to brightness $[2] %",
         'data': {
-            'deviceList': {
+            'device_list': {
                 'id': PLUGIN_ID + ".Actions.Bright.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
@@ -146,14 +146,14 @@ TP_PLUGIN_ACTIONS = {
     'RGB': {
         'category': "general",
         'id': PLUGIN_ID + ".Actions.RGB",
-        'name': "Change Color",
+        'name': "Set Color",
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Change Brightness",
-        'format': "Change $[1] to color $[2]",
+        "doc": "Sets the *Color* and turns *on* the device",
+        'format': "Set $[1] to color $[2]",
         'data': {
-            'deviceList': {
+            'device_list': {
                 'id': PLUGIN_ID + ".Actions.RGB.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
@@ -175,9 +175,9 @@ TP_PLUGIN_ACTIONS = {
         'type': "communicate",
         'tryInline': True,
         "doc": "Sets the *Color Temperature* and turns *on* the device",
-        'format': "Change $[1] color temperature to $[2]",
+        'format': "Set $[1] color temperature to $[2]",
         'data': {
-            'deviceList': {
+            'device_list': {
                 'id': PLUGIN_ID + ".Actions.ColorTemperature.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
@@ -194,30 +194,30 @@ TP_PLUGIN_ACTIONS = {
             },
         }
     },
-    'RGB-Bright': {
+    'RGB_Bright': {
         'category': "general",
-        'id': PLUGIN_ID + ".Actions.RGB-Bright",
-        'name': "Change Color and Brightness",
+        'id': PLUGIN_ID + ".Actions.RGB_Bright",
+        'name': "Set Color and Brightness",
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Change Brightness",
-        'format': "Change $[1] to color $[2] and brightness $[3]",
+        "doc": "Sets the *Color* and *Brightness* and turns *on* the device",
+        'format': "Set $[1] to color $[2] and brightness $[3]",
         'data': {
-            'deviceList': {
-                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.DeviceList",
+            'device_list': {
+                'id': PLUGIN_ID + ".Actions.RGB_Bright.Data.DeviceList",
                 'type': "choice",
                 'label': "choice",
                 "valueChoices": []
             },
             'rgb': {
-                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.RGB",
+                'id': PLUGIN_ID + ".Actions.RGB_Bright.Data.RGB",
                 'type': "color",
                 'label': "color",
                 'default': "#000000FF"
             },
             'bright': {
-                'id': PLUGIN_ID + ".Actions.RGB-Bright.Data.Bright",
+                'id': PLUGIN_ID + ".Actions.RGB_Bright.Data.Bright",
                 'type': "number",
                 'minValue': 0,
                 'maxValue': 100,
@@ -326,28 +326,29 @@ def update_choices() -> None:
     global g_device_list
     choices = [device['name'] for device in g_device_list]
 
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['deviceList']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB-Bright']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'], choices)
 
 @async_to_sync
-async def on_off_trigger_action(action_data:list) -> None:
-    onOff = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['on&off']['id'])
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['OnOffTrigger']['data']['deviceList']['id'])
+async def on_off_action(action_data:list) -> None:
+    on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
     light = get_device_by_name(device_name)
-    g_log.debug(f"on_off_trigger: a> {onOff} d> {device_name} l> {repr(light)}")
+    g_log.debug(f"on_off: a> {on_off} d> {device_name} l> {repr(light)}")
 
-    if (onOff == "ON" and light):
-        await light.on()
-    else:
-        await light.off()
+    if (light):
+        if (on_off == "ON"):
+            await light.on()
+        else:
+            await light.off()
 
 @async_to_sync
 async def toggle_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'])
     light = get_device_by_name(device_name)
     g_log.debug(f"toggle: d> {device_name} l> {repr(light)}")
 
@@ -361,7 +362,7 @@ async def toggle_action(action_data:list) -> None:
 
 @async_to_sync
 async def brightness_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
     g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
@@ -371,7 +372,7 @@ async def brightness_action(action_data:list) -> None:
 
 @async_to_sync
 async def rgb_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'])
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
     light = get_device_by_name(device_name)
 
@@ -383,7 +384,7 @@ async def rgb_action(action_data:list) -> None:
 
 @async_to_sync
 async def color_temperature_action(action_data) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['deviceList']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'])
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
     light = get_device_by_name(device_name)
 
@@ -394,9 +395,9 @@ async def color_temperature_action(action_data) -> None:
 
 @async_to_sync
 async def rgb_bright_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB-Bright']['data']['deviceList']['id'])
-    rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB-Bright']['data']['rgb']['id'])
-    brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB-Bright']['data']['bright']['id'])
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'])
+    rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
+    brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
 
     g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} l> {repr(light)}")    
@@ -444,8 +445,8 @@ def on_action(data):
     g_log.debug(f"Action: {data}")
     if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
         return
-    if aid == TP_PLUGIN_ACTIONS['OnOffTrigger']['id']:
-        on_off_trigger_action(action_data)
+    if aid == TP_PLUGIN_ACTIONS['On_Off']['id']:
+        on_off_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
         toggle_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
@@ -454,7 +455,7 @@ def on_action(data):
         rgb_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['ColorTemperature']['id']:
         color_temperature_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['RGB-Bright']['id']:
+    elif aid == TP_PLUGIN_ACTIONS['RGB_Bright']['id']:
         rgb_bright_action(action_data)
     else:
         g_log.warning("Got unknown action ID: " + aid)
