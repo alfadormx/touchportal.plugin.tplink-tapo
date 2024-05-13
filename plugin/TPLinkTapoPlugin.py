@@ -9,6 +9,20 @@ from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient
 
+R = TypeVar("R")
+
+def async_to_sync(func: Awaitable[R]) -> R:
+    '''Wraps `asyncio.run` on an async function making it sync callable.'''
+    if not asyncio.iscoroutinefunction(func):
+        raise TypeError(f"{func} is not a coroutine function")
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
+        except RuntimeError:
+            return asyncio.new_event_loop().run_until_complete(func(*args, **kwargs))
+    return wrapper
+
 __version__ = 1.0
 
 PLUGIN_ID = "mx.alfador.touchportal.TPLinkTapoPlugin"
@@ -249,20 +263,6 @@ g_log = Logger(name = PLUGIN_ID)
 g_device_list = {}
 g_tapo_client = None
 
-R = TypeVar("R")
-
-def async_to_sync(func: Awaitable[R]) -> R:
-    '''Wraps `asyncio.run` on an async function making it sync callable.'''
-    if not asyncio.iscoroutinefunction(func):
-        raise TypeError(f"{func} is not a coroutine function")
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
-        except RuntimeError:
-            return asyncio.new_event_loop().run_until_complete(func(*args, **kwargs))
-    return wrapper
-
 @async_to_sync
 async def handle_settings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
@@ -333,87 +333,74 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'], choices)
 
-@async_to_sync
-async def on_off_action(action_data:list) -> None:
+## Actions
+
+# Action definitions
+
+async def on_off_action(device_name, light, action_data:list) -> None:
     on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
-    light = get_device_by_name(device_name)
 
-    if (not light):
-        g_log.debug(f"on_off: a> {on_off} d> {device_name} l> Light not found!")
+    g_log.debug(f"Action: on_off | a> {on_off} d> {device_name} l> {repr(light)}")
+
+    if (on_off == "ON"):
+        await light.on()
     else:
-        g_log.debug(f"on_off: a> {on_off} d> {device_name} l> {repr(light)}")
-        if (on_off == "ON"):
-            await light.on()
-        else:
-            await light.off()
+        await light.off()
 
-@async_to_sync
-async def toggle_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'])
-    light = get_device_by_name(device_name)
-
-    if (not light):
-        g_log.debug(f"toggle: d> {device_name} l> Light not found!")
-    else:
-        g_log.debug(f"toggle: d> {device_name} l> {repr(light)}")
-        device_info = await light.get_device_info()
-        g_log.debug(f"device_info: {repr(device_info)}")
-        if (device_info.device_on):
-            await light.off()
-        else:
-            await light.on()
-
-@async_to_sync
-async def brightness_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'])
-    brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
-    light = get_device_by_name(device_name)
+async def toggle_action(device_name, light) -> None:
+    g_log.debug(f"Action: toggle | d> {device_name} l> {repr(light)}")
     
-    if (not light):
-        g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> Light not found!")
-    else:
-        g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
-        await light.set_brightness(int(brightness))
+    device_info = await light.get_device_info()
+    g_log.debug(f"Action: toggle | device_info: {repr(device_info)}")
 
-@async_to_sync
-async def rgb_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'])
+    if (device_info.device_on):
+        await light.off()
+    else:
+        await light.on()
+
+async def bright_action(device_name, light, action_data:list) -> None:
+    brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
+    
+    g_log.debug(f"Action brightness | d> {device_name} b> {brightness}% l> {repr(light)}")
+
+    await light.set_brightness(int(brightness))
+
+async def rgb_action(device_name, light, action_data:list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
-    light = get_device_by_name(device_name)
 
-    if (not light):
-        g_log.debug(f"rgb: d> {device_name} r> {rgb} l> Light not found!")
-    else:
-        hue, saturation = hex_to_hue_saturation(rgb)
-        g_log.debug(f"rgb: d> {device_name} r> {rgb} h> {hue} s> {saturation} l> {repr(light)}")
-        await light.set_hue_saturation(hue, saturation)
+    hue, saturation = hex_to_hue_saturation(rgb)
+    g_log.debug(f"Action rgb | d> {device_name} r> {rgb} h> {hue} s> {saturation} l> {repr(light)}")
 
-@async_to_sync
-async def color_temperature_action(action_data) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'])
+    await light.set_hue_saturation(hue, saturation)
+
+async def color_temperature_action(device_name, light, action_data) -> None:
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
-    light = get_device_by_name(device_name)
 
-    if (not light):
-        g_log.debug(f"rgb: d> {device_name} t> {temperature} l> Light not found!")
-    else:
-        g_log.debug(f"rgb: d> {device_name} t> {temperature} l> {repr(light)}")
-        await light.set_color_temperature(temperature)
+    g_log.debug(f"Action color_temperature | d> {device_name} t> {temperature} l> {repr(light)}")
 
-@async_to_sync
-async def rgb_bright_action(action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'])
+    await light.set_color_temperature(temperature)
+
+async def rgb_bright_action(device_name, light, action_data:list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
-    light = get_device_by_name(device_name)
 
-    if (not light):
-        g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} l> Light not found!")    
-    if (light):
-        hue, saturation = hex_to_hue_saturation(rgb)
-        g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} h> {hue} s> {saturation} l> {repr(light)}")
-        await light.set().brightness(int(brightness)).hue_saturation(hue, saturation).send(light)
+    hue, saturation = hex_to_hue_saturation(rgb)
+    g_log.debug(f"Action rgb_bright | d> {device_name} r> {rgb} b> {brightness} h> {hue} s> {saturation} l> {repr(light)}")
+
+    await light.set().brightness(int(brightness)).hue_saturation(hue, saturation).send(light)
+
+# Action map
+
+TP_PLUGIN_ACTION_MAP = {
+    TP_PLUGIN_ACTIONS['On_Off']['id']: on_off_action,
+    TP_PLUGIN_ACTIONS['Toggle']['id']: toggle_action,
+    TP_PLUGIN_ACTIONS['Bright']['id']: bright_action,
+    TP_PLUGIN_ACTIONS['RGB']['id']: rgb_action,
+    TP_PLUGIN_ACTIONS['ColorTemperature']['id']: color_temperature_action,
+    TP_PLUGIN_ACTIONS['RGB_Bright']['id']: rgb_bright_action
+}
+
+# Helpers
 
 def hex_to_hue_saturation(hex_color):
     hex_color = hex_color.lstrip("#")
@@ -430,6 +417,23 @@ def get_device_by_name(device_name):
         if device['name'] == device_name:
             return device['device']  # Returns the ColorLightHandler object
     return None  # Return None if not found
+
+# Perform action
+
+@async_to_sync
+async def perform_action(aid:str, action_data:list) -> None:
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
+    light = get_device_by_name(device_name)
+
+    #if (not light):
+    #    g_log.debug(f"Action: {aid} | l> Light not found!")
+    #    return
+    
+    action_func = TP_PLUGIN_ACTION_MAP.get(aid)
+    if (action_func):
+        await action_func(device_name, light, action_data)
+    else:
+        g_log.warning(f"Got unknown action ID: {aid}")
 
 ## TP Client event handler callbacks
 
@@ -451,21 +455,16 @@ def on_setting_update(data):
 # Action handler
 @TPClient.on(TP.TYPES.onAction)
 def on_action(data):
-    g_log.debug(f"Action: {data}")
-    if not (action_data := data.get('data')) or not (aid := data.get('actionId')):
+    g_log.debug(f"Action {data}")
+    
+    action_data = data.get('data')
+    aid = data.get('actionId')
+
+    if not action_data or not aid:
         return
-    if aid == TP_PLUGIN_ACTIONS['On_Off']['id']:
-        on_off_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['Toggle']['id']:
-        toggle_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['Bright']['id']:
-        brightness_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
-        rgb_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['ColorTemperature']['id']:
-        color_temperature_action(action_data)
-    elif aid == TP_PLUGIN_ACTIONS['RGB_Bright']['id']:
-        rgb_bright_action(action_data)
+    
+    if aid in TP_PLUGIN_ACTION_MAP:
+        perform_action(aid, action_data)
     else:
         g_log.warning("Got unknown action ID: " + aid)
 
