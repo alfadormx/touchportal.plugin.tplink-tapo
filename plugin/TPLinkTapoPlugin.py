@@ -338,9 +338,11 @@ async def on_off_action(action_data:list) -> None:
     on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
     light = get_device_by_name(device_name)
-    g_log.debug(f"on_off: a> {on_off} d> {device_name} l> {repr(light)}")
 
-    if (light):
+    if (not light):
+        g_log.debug(f"on_off: a> {on_off} d> {device_name} l> Light not found!")
+    else:
+        g_log.debug(f"on_off: a> {on_off} d> {device_name} l> {repr(light)}")
         if (on_off == "ON"):
             await light.on()
         else:
@@ -350,9 +352,11 @@ async def on_off_action(action_data:list) -> None:
 async def toggle_action(action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'])
     light = get_device_by_name(device_name)
-    g_log.debug(f"toggle: d> {device_name} l> {repr(light)}")
 
-    if (light):
+    if (not light):
+        g_log.debug(f"toggle: d> {device_name} l> Light not found!")
+    else:
+        g_log.debug(f"toggle: d> {device_name} l> {repr(light)}")
         device_info = await light.get_device_info()
         g_log.debug(f"device_info: {repr(device_info)}")
         if (device_info.device_on):
@@ -365,9 +369,11 @@ async def brightness_action(action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
-    g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
     
-    if (light):
+    if (not light):
+        g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> Light not found!")
+    else:
+        g_log.debug(f"brightness: d> {device_name} b> {brightness}% l> {repr(light)}")
         await light.set_brightness(int(brightness))
 
 @async_to_sync
@@ -376,10 +382,11 @@ async def rgb_action(action_data:list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
     light = get_device_by_name(device_name)
 
-    g_log.debug(f"rgb: d> {device_name} r> {rgb} l> {repr(light)}")
-
-    if (light):
+    if (not light):
+        g_log.debug(f"rgb: d> {device_name} r> {rgb} l> Light not found!")
+    else:
         hue, saturation = hex_to_hue_saturation(rgb)
+        g_log.debug(f"rgb: d> {device_name} r> {rgb} h> {hue} s> {saturation} l> {repr(light)}")
         await light.set_hue_saturation(hue, saturation)
 
 @async_to_sync
@@ -388,9 +395,10 @@ async def color_temperature_action(action_data) -> None:
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
     light = get_device_by_name(device_name)
 
-    g_log.debug(f"rgb: d> {device_name} t> {temperature} l> {repr(light)}")
-
-    if (light):
+    if (not light):
+        g_log.debug(f"rgb: d> {device_name} t> {temperature} l> Light not found!")
+    else:
+        g_log.debug(f"rgb: d> {device_name} t> {temperature} l> {repr(light)}")
         await light.set_color_temperature(temperature)
 
 @async_to_sync
@@ -400,10 +408,11 @@ async def rgb_bright_action(action_data:list) -> None:
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
     light = get_device_by_name(device_name)
 
-    g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} l> {repr(light)}")    
-
+    if (not light):
+        g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} l> Light not found!")    
     if (light):
         hue, saturation = hex_to_hue_saturation(rgb)
+        g_log.debug(f"rgb - bright: d> {device_name} r> {rgb} b> {brightness} h> {hue} s> {saturation} l> {repr(light)}")
         await light.set().brightness(int(brightness)).hue_saturation(hue, saturation).send(light)
 
 def hex_to_hue_saturation(hex_color):
