@@ -313,10 +313,12 @@ async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Option
 def read_config_file(file_path) -> None:
     global g_device_list
 
+    g_device_list = {}
+
     try:
         with open(file_path, 'r') as file:
             data = json.load(file)
-            g_device_list = [{'name': name, 'ipaddress': ip} for name, ip in data.items()]
+            g_device_list = [{'name': name, 'ipaddress': ip, 'device': None} for name, ip in data.items()]
             g_log.debug(f"Config file: {file_path} read with info {data}")
     except Exception as e:
         g_log.warning(f"Error reading file {file_path}: {repr(e)}")
@@ -425,9 +427,9 @@ async def perform_action(aid:str, action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
     light = get_device_by_name(device_name)
 
-    #if (not light):
-    #    g_log.debug(f"Action: {aid} | l> Light not found!")
-    #    return
+    if (not light):
+        g_log.debug(f"Action: {aid} | l> Light not found!")
+        return
     
     action_func = TP_PLUGIN_ACTION_MAP.get(aid)
     if (action_func):
