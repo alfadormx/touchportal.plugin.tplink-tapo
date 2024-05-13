@@ -167,6 +167,33 @@ TP_PLUGIN_ACTIONS = {
             },
         }
     },
+    'ColorTemperature': {
+        'category': "general",
+        'id': PLUGIN_ID + ".Actions.ColorTemperature",
+        'name': "Set Color Temperature",
+        'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
+        'type': "communicate",
+        'tryInline': True,
+        "doc": "Sets the *Color Temperature* and turns *on* the device",
+        'format': "Change $[1] color temperature to $[2]",
+        'data': {
+            'deviceList': {
+                'id': PLUGIN_ID + ".Actions.ColorTemperature.Data.DeviceList",
+                'type': "choice",
+                'label': "choice",
+                "valueChoices": []
+            },
+            'temperature': {
+                'id': PLUGIN_ID + ".Actions.ColorTemperature.Data.Temperature",
+                'type': "number",
+                'minValue': 2500,
+                'maxValue': 6500,
+                'allowDecimals': False,
+                'label': "Brightness",
+                "default": 2700
+            },
+        }
+    },
     'RGB-Bright': {
         'category': "general",
         'id': PLUGIN_ID + ".Actions.RGB-Bright",
@@ -303,6 +330,7 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['deviceList']['id'], choices)
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['deviceList']['id'], choices)
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB-Bright']['data']['deviceList']['id'], choices)
 
 @async_to_sync
@@ -352,6 +380,17 @@ async def rgb_action(action_data:list) -> None:
     if (light):
         hue, saturation = hex_to_hue_saturation(rgb)
         await light.set_hue_saturation(hue, saturation)
+
+@async_to_sync
+async def color_temperature_action(action_data) -> None:
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['deviceList']['id'])
+    temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
+    light = get_device_by_name(device_name)
+
+    g_log.debug(f"rgb: d> {device_name} t> {temperature} l> {repr(light)}")
+
+    if (light):
+        await light.set_color_temperature(temperature)
 
 @async_to_sync
 async def rgb_bright_action(action_data:list) -> None:
@@ -413,6 +452,8 @@ def on_action(data):
         brightness_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['RGB']['id']:
         rgb_action(action_data)
+    elif aid == TP_PLUGIN_ACTIONS['ColorTemperature']['id']:
+        color_temperature_action(action_data)
     elif aid == TP_PLUGIN_ACTIONS['RGB-Bright']['id']:
         rgb_bright_action(action_data)
     else:
