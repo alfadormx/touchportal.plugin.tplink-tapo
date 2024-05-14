@@ -1,8 +1,7 @@
 {
 	"name": "touchportal.plugin.tplink-tapo",
-	"image": "mcr.microsoft.com/windows-cssc/python:3.11-windows-ltsc2019",
+	"image": "mcr.microsoft.com/devcontainers/python:dev-3.12-bookworm",
 	"shutdownAction": "stopContainer",
-	// "features": { },
 	"customizations": {
 		"vscode": {
 			"settings": {
@@ -10,11 +9,12 @@
 			},
 			"extensions": [
 				"ms-python.python",
-                "ms-python.debugpy",
+				"ms-python.debugpy",
+				"mutantdino.resourcemonitor",
 				"mhutchie.git-graph",
-				"PKief.material-icon-theme"
+				"actboy168.tasks"
 			]
 		}
 	},
-    "postCreateCommand": "pip3 install -r requirements.txt"
+	"postCreateCommand": "pip3 install -r requirements.txt"
 }
