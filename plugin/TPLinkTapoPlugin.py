@@ -82,11 +82,11 @@ TP_PLUGIN_ACTIONS = {
     'On_Off': {
         'category': "general",
         'id': PLUGIN_ID + ".Actions.On_Off",
-        'name': "Turn Device on or off",
+        'name': "On / Off",
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Turn Device *on* or *off*",
+        "doc": "Turn Device **on** or **off**",
         'format': "Turn $[2] $[1]",
         'data': {
             'on_off': {
@@ -113,7 +113,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Turns *on* or *off* a device accordingly",
+        "doc": "Turns **on** or **off** a device accordingly",
         'format': "Toggle $[1]",
         'data': {
             'device_list': {
@@ -137,7 +137,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Set *Brightness* and turns *on* the device",
+        "doc": "Set **Brightness** and turns **on** the device",
         'format': "Change $[1] to brightness $[2] %",
         'data': {
             'device_list': {
@@ -164,7 +164,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Sets the *Color* and turns *on* the device",
+        "doc": "Sets the **Color** and turns **on** the device",
         'format': "Set $[1] to color $[2]",
         'data': {
             'device_list': {
@@ -188,7 +188,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Sets the *Color Temperature* and turns *on* the device",
+        "doc": "Sets the **Color Temperature** and turns **on** the device",
         'format': "Set $[1] color temperature to $[2]",
         'data': {
             'device_list': {
@@ -215,7 +215,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['general']['name'],
         'type': "communicate",
         'tryInline': True,
-        "doc": "Sets the *Color* and *Brightness* and turns *on* the device",
+        "doc": "Sets the **Color** and **Brightness** and turns **on** the device",
         'format': "Set $[1] to color $[2] and brightness $[3]",
         'data': {
             'device_list': {
