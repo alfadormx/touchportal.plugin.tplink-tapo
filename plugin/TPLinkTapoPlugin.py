@@ -304,7 +304,7 @@ async def initialize_tapo(username, password) -> None:
     tasks = [fetch_device(g_tapo_client, device) for device in g_device_list.values()]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    for device, result in zip(g_device_list, results):
+    for device, result in zip(g_device_list.values(), results):
         if isinstance(result, Exception):
             device["device"] = None
         else:
@@ -335,21 +335,25 @@ async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Option
         g_log.warning(f"Error fetching data for {device_info['name']}: {e}")
         return None
 
-def read_config_file(file_path) -> None:
+def read_config_file(file_path) -> Any:
     device_list = {}
 
     try:
         with open(file_path, 'r') as file:
             data = yaml.safe_load(file)
             for device_type, devices in data.items():
-                for device in devices:
-                    device_list[device['name']] = {
-                        'ipaddress': device['ip'],
-                        'device': None,
-                        'type': device_type  # Include type information
-                    }
-            g_log.debug(f"Config file: {file_path} read with info {data}")
-            g_log.debug(f"Parsed device_list: {device_list}")
+                if devices:
+                    for device in devices:
+                        if 'name' in device and 'ip' in device:
+                            device_list[device['name']] = {
+                                'name': device['name'],
+                                'ipaddress': device['ip'],
+                                'type': device_type,
+                                'device': None, # it will contain reference to tapo light
+                            }
+                        else:
+                            g_log.warning(f"Device is missing 'name' or 'ip': t> {device_type} d> {device}")
+            g_log.debug(f"Config file: {file_path} read: dl> {device_list}")
     except Exception as e:
         g_log.warning(f"Error reading file {file_path}: {repr(e)}")
         return []
@@ -361,11 +365,11 @@ def validate_devices(device_list) -> None:
 
     for name, device in device_list.items():
         if device['type'] not in SUPPORTED_DEVICE_TYPES:
-            g_log.warning(f"Unsupported device type: {device['type']} for device {name}")
+            g_log.warning(f"Unsupported device type: t> {device['type']} d> {name}")
         else:
             g_device_list[name] = device
     
-    g_log.debug(f"Validated g_device_list: {g_device_list}")
+    g_log.debug(f"Device list validated: gdl> {g_device_list}")
 
 def update_choices() -> None:
     global g_device_list
@@ -382,13 +386,13 @@ def update_choices() -> None:
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'], filtered_choices["Toggle"])
     TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'], filtered_choices["Bright"])
 
-    if "RGB" in filtered_choices:
+    if any(filtered_choices["RGB"]):
         TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'], filtered_choices["RGB"])
 
-    if "RGB_Bright" in filtered_choices:
+    if any(filtered_choices["RGB_Bright"]):
         TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'], filtered_choices["RGB_Bright"])
 
-    if "ColorTemperature" in filtered_choices:
+    if any(filtered_choices["ColorTemperature"]):
         TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'], filtered_choices["ColorTemperature"])
 
 ## Actions
@@ -475,7 +479,7 @@ def hex_to_hue_saturation(hex_color):
 @async_to_sync
 async def perform_action(aid:str, action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
-    light = g_device_list.get(device_name)
+    light = g_device_list.get(device_name)["device"]
 
     if not light:
         g_log.debug(f"Action: {aid} | l> Light not found!")

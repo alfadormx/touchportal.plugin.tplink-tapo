@@ -5,7 +5,7 @@ L510:
     ip: 127.0.0.2
 
 L520:
-  - name: "Light #3"
+  - name: "Light #1"
     ip: 127.0.0.3
   - name: "Light #4"
     ip: 127.0.0.4
