@@ -2,12 +2,21 @@ import colorsys
 from functools import wraps
 import sys
 import TouchPortalAPI as TP
-import json
+import yaml
 import asyncio
 from typing import Any, Awaitable, Dict, Optional, TypeVar
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient
+
+# Supported device types
+SUPPORTED_DEVICE_TYPES = {
+    "L510": ["On_Off", "Toggle", "Bright"],
+    "L520": ["On_Off", "Toggle", "Bright"],
+    "L610": ["On_Off", "Toggle", "Bright"],
+    "L530": ["On_Off", "Toggle", "Bright", "RGB", "ColorTemperature", "RGB_Bright"],
+    "L630": ["On_Off", "Toggle", "Bright", "RGB", "ColorTemperature", "RGB_Bright"]
+}
 
 R = TypeVar("R")
 
@@ -273,7 +282,8 @@ async def handle_settings(settings, on_connect=False):
     if config_value and config_value.strip():
         TP_PLUGIN_SETTINGS['configFile']['value'] = config_value.strip()
         try:
-            read_config_file(config_value.strip())
+            device_list = read_config_file(config_value.strip())
+            validate_devices(device_list);
             update_choices()
         except Exception as e:
             g_log.warning(f"Failed to process config file: {e}")
@@ -291,7 +301,7 @@ async def initialize_tapo(username, password) -> None:
     g_tapo_client = ApiClient(username, password)
     g_log.debug(f"initializeTapo: tapoClient is set with u> {username} & p> {password}")
 
-    tasks = [fetch_device(g_tapo_client, device) for device in g_device_list]
+    tasks = [fetch_device(g_tapo_client, device) for device in g_device_list.values()]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     for device, result in zip(g_device_list, results):
@@ -303,7 +313,22 @@ async def initialize_tapo(username, password) -> None:
 async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[Any]:
     try:
         g_log.debug(f"trying fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']}")
-        device = await client.l630(device_info["ipaddress"])
+        
+        # Select API method based on device type
+        if device_info['type'] == 'L510':
+            device = await client.l510(device_info["ipaddress"])
+        elif device_info['type'] == 'L520':
+            device = await client.l520(device_info["ipaddress"])
+        elif device_info['type'] == 'L610':
+            device = await client.l610(device_info["ipaddress"])
+        elif device_info['type'] == 'L530':
+            device = await client.l530(device_info["ipaddress"])
+        elif device_info['type'] == 'L630':
+            device = await client.l630(device_info["ipaddress"])
+        else:
+            g_log.warning(f"Unsupported device type: {device_info['type']} for device {device_info['ipaddress']}")
+            return None
+
         g_log.debug(f"fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']} OK!")
         return device
     except Exception as e:
@@ -311,29 +336,60 @@ async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Option
         return None
 
 def read_config_file(file_path) -> None:
-    global g_device_list
-
-    g_device_list = {}
+    device_list = {}
 
     try:
         with open(file_path, 'r') as file:
-            data = json.load(file)
-            g_device_list = [{'name': name, 'ipaddress': ip, 'device': None} for name, ip in data.items()]
+            data = yaml.safe_load(file)
+            for device_type, devices in data.items():
+                for device in devices:
+                    device_list[device['name']] = {
+                        'ipaddress': device['ip'],
+                        'device': None,
+                        'type': device_type  # Include type information
+                    }
             g_log.debug(f"Config file: {file_path} read with info {data}")
+            g_log.debug(f"Parsed device_list: {device_list}")
     except Exception as e:
         g_log.warning(f"Error reading file {file_path}: {repr(e)}")
         return []
+    
+    return device_list
+
+def validate_devices(device_list) -> None:
+    global g_device_list
+
+    for name, device in device_list.items():
+        if device['type'] not in SUPPORTED_DEVICE_TYPES:
+            g_log.warning(f"Unsupported device type: {device['type']} for device {name}")
+        else:
+            g_device_list[name] = device
+    
+    g_log.debug(f"Validated g_device_list: {g_device_list}")
 
 def update_choices() -> None:
     global g_device_list
-    choices = [device['name'] for device in g_device_list]
 
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'], choices)
-    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'], choices)
+    all_actions = {action for actions in SUPPORTED_DEVICE_TYPES.values() for action in actions}
+    filtered_choices = {action: [] for action in all_actions}
+
+    # Populate the filtered choices based on device capabilities
+    for name, device in g_device_list.items():
+        for action in SUPPORTED_DEVICE_TYPES[device['type']]:
+            filtered_choices[action].append(name)
+
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'], filtered_choices["On_Off"])
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Toggle']['data']['device_list']['id'], filtered_choices["Toggle"])
+    TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['Bright']['data']['device_list']['id'], filtered_choices["Bright"])
+
+    if "RGB" in filtered_choices:
+        TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB']['data']['device_list']['id'], filtered_choices["RGB"])
+
+    if "RGB_Bright" in filtered_choices:
+        TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['RGB_Bright']['data']['device_list']['id'], filtered_choices["RGB_Bright"])
+
+    if "ColorTemperature" in filtered_choices:
+        TPClient.choiceUpdate(TP_PLUGIN_ACTIONS['ColorTemperature']['data']['device_list']['id'], filtered_choices["ColorTemperature"])
 
 ## Actions
 
@@ -412,22 +468,16 @@ def hex_to_hue_saturation(hex_color):
     hue = max(1, min(360, int(h * 360)))
     saturation = max(1, min(100, int(s * 100)))
 
-    return hue, saturation    
-
-def get_device_by_name(device_name):
-    for device in g_device_list:
-        if device['name'] == device_name:
-            return device['device']  # Returns the ColorLightHandler object
-    return None  # Return None if not found
+    return hue, saturation
 
 # Perform action
 
 @async_to_sync
 async def perform_action(aid:str, action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
-    light = get_device_by_name(device_name)
+    light = g_device_list.get(device_name)
 
-    if (not light):
+    if not light:
         g_log.debug(f"Action: {aid} | l> Light not found!")
         return
     

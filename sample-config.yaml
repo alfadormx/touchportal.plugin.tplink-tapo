@@ -1,0 +1,35 @@
+L510:
+  - name: "Light #1"
+    ip: 127.0.0.1
+  - name: "Light #2"
+    ip: 127.0.0.2
+
+L520:
+  - name: "Light #3"
+    ip: 127.0.0.3
+  - name: "Light #4"
+    ip: 127.0.0.4
+
+L610:
+  - name: "Light #5"
+    ip: 127.0.0.5
+  - name: "Light #6"
+    ip: 127.0.0.6
+
+L530:
+  - name: "Light #7"
+    ip: 127.0.0.7
+  - name: "Light #8"
+    ip: 127.0.0.8
+
+L630:
+  - name: "Light #9"
+    ip: 127.0.0.9
+  - name: "Light #10"
+    ip: 127.0.0.410
+
+L1000:
+  - name: "Light #11"
+    ip: 127.0.0.11
+  - name: "Light #12"
+    ip: 127.0.0.12
