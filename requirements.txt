@@ -2,3 +2,4 @@
 TouchPortal-API
 pyinstaller
 tapo
+pyyaml
