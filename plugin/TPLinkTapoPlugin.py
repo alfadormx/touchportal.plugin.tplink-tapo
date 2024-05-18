@@ -4,12 +4,12 @@ import sys
 import TouchPortalAPI as TP
 import yaml
 from functools import wraps
-from typing import Any, Awaitable, Dict, Optional, Tuple, TypeVar, Union
+from typing import Awaitable, Dict, Optional, Tuple, TypeVar, Union
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient, ColorLightHandler, LightHandler
 
-# Supported device types
+# Supported device types and actions
 
 SUPPORTED_DEVICE_TYPES = {
     'L510': ['On_Off', 'Toggle', 'Bright'],
@@ -314,32 +314,32 @@ async def initialize_tapo(username, password) -> None:
 
     for device, result in zip(g_device_list.values(), results):
         if isinstance(result, Exception):
-            device['device'] = None
+            device['light'] = None
         else:
-            device['device'] = result
+            device['light'] = result
 
 async def fetch_device(client: ApiClient, device: Device) -> Optional[Union[LightHandler, ColorLightHandler]]:
     try:
         g_log.debug(f'trying fetch_device: d> {device['name']} & ip> {device['ipaddress']}')
-        light_handler: Union[LightHandler, ColorLightHandler]
+        light: Union[LightHandler, ColorLightHandler]
         
         # Select API method based on device type
         if device['type'] == 'L510':
-            light_handler = await client.l510(device['ipaddress'])
+            light = await client.l510(device['ipaddress'])
         elif device['type'] == 'L520':
-            light_handler = await client.l520(device['ipaddress'])
+            light = await client.l520(device['ipaddress'])
         elif device['type'] == 'L610':
-            light_handler = await client.l610(device['ipaddress'])
+            light = await client.l610(device['ipaddress'])
         elif device['type'] == 'L530':
-            light_handler = await client.l530(device['ipaddress'])
+            light = await client.l530(device['ipaddress'])
         elif device['type'] == 'L630':
-            light_handler = await client.l630(device['ipaddress'])
+            light = await client.l630(device['ipaddress'])
         else:
             g_log.warning(f'Unsupported device type: {device['type']} for device {device['ipaddress']}')
             return None
 
         g_log.debug(f'fetch_device: d> {device['name']} & ip> {device['ipaddress']} OK!')
-        return light_handler
+        return light
     except Exception as e:
         g_log.warning(f'Error fetching data for {device['name']}: {e}')
         return None
@@ -358,7 +358,7 @@ def read_config_file(file_path) -> Dict[str, Device]:
                                 'name': device['name'],
                                 'ipaddress': device['ip'],
                                 'type': device_type,
-                                'device': None, # it will contain reference to tapo light
+                                'light': None, # it will contain reference to tapo light
                             }
                         else:
                             g_log.warning(f'Device is missing "name" or "ip": t> {device_type} d> {device}')
@@ -412,7 +412,7 @@ def update_choices() -> None:
 @async_to_sync
 async def perform_action(aid:str, action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
-    light = g_device_list.get(device_name)['device']
+    light = g_device_list.get(device_name)['light']
 
     if not light:
         g_log.debug(f'Action: {aid} | l> Light not found!')
