@@ -1,15 +1,15 @@
+import asyncio
 import colorsys
 import sys
 import TouchPortalAPI as TP
 import yaml
-import asyncio
 from functools import wraps
-from typing import Any, Awaitable, Dict, Optional, TypeVar
+from typing import Any, Awaitable, Dict, Optional, Tuple, TypeVar, Union
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient
 
-# Supported device types
+# Supported device types and actions
 
 SUPPORTED_DEVICE_TYPES = {
     'L510': ['On_Off', 'Toggle', 'Bright'],
@@ -272,33 +272,36 @@ except Exception as e:
     sys.exit(f'Could not create TP Client, exiting. Error was:\n{repr(e)}')
 
 g_log = Logger(name = PLUGIN_ID)
-g_device_list = {}
-g_tapo_client = None
+Device = Dict[str, Optional[Union[str, Any]]]
+g_device_list: Dict[str, Device] = {}
+g_tapo_client: ApiClient = None
 
 # Plugin initialization
 
 @async_to_sync
-async def handle_settings(settings, on_connect=False):
-    settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
-    config_value = settings.get(TP_PLUGIN_SETTINGS['configFile']['name'])
-    username_value = settings.get(TP_PLUGIN_SETTINGS['username']['name'])
-    password_value = settings.get(TP_PLUGIN_SETTINGS['password']['name'])
+async def handle_settings(settings, on_connect=False) -> None:
+    global g_device_list;
 
-    if config_value and config_value.strip():
-        TP_PLUGIN_SETTINGS['configFile']['value'] = config_value.strip()
+    settings = {list(item)[0]: list(item.values())[0] for item in settings}
+    config_file = settings.get(TP_PLUGIN_SETTINGS['configFile']['name']).strip()
+    username = settings.get(TP_PLUGIN_SETTINGS['username']['name'])
+    password = settings.get(TP_PLUGIN_SETTINGS['password']['name'])
+
+    if config_file and config_file:
+        TP_PLUGIN_SETTINGS['configFile']['value'] = config_file
         try:
-            device_list = read_config_file(config_value.strip())
-            validate_devices(device_list);
+            device_list = read_config_file(config_file)
+            g_device_list = validate_devices(device_list);
             update_choices()
         except Exception as e:
             g_log.warning(f'Failed to process config file: {e}')
-    if username_value:
-        TP_PLUGIN_SETTINGS['username']['value'] = username_value
-    if password_value:
-        TP_PLUGIN_SETTINGS['password']['value'] = password_value
+    if username:
+        TP_PLUGIN_SETTINGS['username']['value'] = username
+    if password:
+        TP_PLUGIN_SETTINGS['password']['value'] = password
 
-    if username_value and password_value:
-        await initialize_tapo(username_value, password_value)
+    if username and password:
+        await initialize_tapo(username, password)
 
 async def initialize_tapo(username, password) -> None:
     global g_tapo_client
@@ -311,37 +314,38 @@ async def initialize_tapo(username, password) -> None:
 
     for device, result in zip(g_device_list.values(), results):
         if isinstance(result, Exception):
-            device['device'] = None
+            device['light'] = None
         else:
-            device['device'] = result
+            device['light'] = result
 
-async def fetch_device(client: ApiClient, device_info: Dict[str, Any]) -> Optional[Any]:
+async def fetch_device(client: ApiClient, device: Device) -> Optional[Any]:
     try:
-        g_log.debug(f'trying fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']}')
+        g_log.debug(f'trying fetch_device: d> {device['name']} & ip> {device['ipaddress']}')
+        light: Any
         
         # Select API method based on device type
-        if device_info['type'] == 'L510':
-            device = await client.l510(device_info['ipaddress'])
-        elif device_info['type'] == 'L520':
-            device = await client.l520(device_info['ipaddress'])
-        elif device_info['type'] == 'L610':
-            device = await client.l610(device_info['ipaddress'])
-        elif device_info['type'] == 'L530':
-            device = await client.l530(device_info['ipaddress'])
-        elif device_info['type'] == 'L630':
-            device = await client.l630(device_info['ipaddress'])
+        if device['type'] == 'L510':
+            light = await client.l510(device['ipaddress'])
+        elif device['type'] == 'L520':
+            light = await client.l520(device['ipaddress'])
+        elif device['type'] == 'L610':
+            light = await client.l610(device['ipaddress'])
+        elif device['type'] == 'L530':
+            light = await client.l530(device['ipaddress'])
+        elif device['type'] == 'L630':
+            light = await client.l630(device['ipaddress'])
         else:
-            g_log.warning(f'Unsupported device type: {device_info['type']} for device {device_info['ipaddress']}')
+            g_log.warning(f'Unsupported device type: {device['type']} for device {device['ipaddress']}')
             return None
 
-        g_log.debug(f'fetch_device: d> {device_info['name']} & ip> {device_info['ipaddress']} OK!')
-        return device
+        g_log.debug(f'fetch_device: d> {device['name']} & ip> {device['ipaddress']} OK!')
+        return light
     except Exception as e:
-        g_log.warning(f'Error fetching data for {device_info['name']}: {e}')
+        g_log.warning(f'Error fetching data for {device['name']}: {e}')
         return None
 
-def read_config_file(file_path) -> Any:
-    device_list = {}
+def read_config_file(file_path) -> Dict[str, Device]:
+    file_devices: Dict[str, Device] = {}
 
     try:
         with open(file_path, 'r') as file:
@@ -350,31 +354,32 @@ def read_config_file(file_path) -> Any:
                 if devices:
                     for device in devices:
                         if 'name' in device and 'ip' in device:
-                            device_list[device['name']] = {
+                            file_devices[device['name']] = {
                                 'name': device['name'],
                                 'ipaddress': device['ip'],
                                 'type': device_type,
-                                'device': None, # it will contain reference to tapo light
+                                'light': None, # it will contain reference to tapo light
                             }
                         else:
                             g_log.warning(f'Device is missing "name" or "ip": t> {device_type} d> {device}')
-            g_log.debug(f'Config file: {file_path} read: dl> {device_list}')
+            g_log.debug(f'Config file: {file_path} read: dl> {devices}')
     except Exception as e:
         g_log.warning(f'Error reading file {file_path}: {repr(e)}')
-        return []
+        return {}
     
-    return device_list
+    return file_devices
 
-def validate_devices(device_list) -> None:
-    global g_device_list
+def validate_devices(devices: Dict[str, Device]) -> Dict[str, Device]:
+    validated_devices: Dict[str, Device] = {}
 
-    for name, device in device_list.items():
+    for name, device in devices.items():
         if device['type'] not in SUPPORTED_DEVICE_TYPES:
             g_log.warning(f'Unsupported device type: t> {device['type']} d> {name}')
         else:
-            g_device_list[name] = device
+            validated_devices[name] = device
     
-    g_log.debug(f'Device list validated: gdl> {g_device_list}')
+    g_log.debug(f'Device list validated: gdl> {validated_devices}')
+    return validated_devices
 
 def update_choices() -> None:
     global g_device_list
@@ -407,7 +412,7 @@ def update_choices() -> None:
 @async_to_sync
 async def perform_action(aid:str, action_data:list) -> None:
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
-    light = g_device_list.get(device_name)['device']
+    light = g_device_list.get(device_name)['light']
 
     if not light:
         g_log.debug(f'Action: {aid} | l> Light not found!')
@@ -419,17 +424,17 @@ async def perform_action(aid:str, action_data:list) -> None:
     else:
         g_log.warning(f'Got unknown action ID: {aid}')
 
-async def on_off_action(device_name, light, action_data:list) -> None:
+async def on_off_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
 
     g_log.debug(f'Action: on_off | a> {on_off} d> {device_name} l> {repr(light)}')
 
     if (on_off == 'ON'):
-        await light.on()
+        await light.o
     else:
         await light.off()
 
-async def toggle_action(device_name, light) -> None:
+async def toggle_action(device_name: str, light: Optional[Any]) -> None:
     g_log.debug(f'Action: toggle | d> {device_name} l> {repr(light)}')
     
     device_info = await light.get_device_info()
@@ -440,14 +445,14 @@ async def toggle_action(device_name, light) -> None:
     else:
         await light.on()
 
-async def bright_action(device_name, light, action_data:list) -> None:
+async def bright_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     
     g_log.debug(f'Action brightness | d> {device_name} b> {brightness}% l> {repr(light)}')
 
     await light.set_brightness(int(brightness))
 
-async def rgb_action(device_name, light, action_data:list) -> None:
+async def rgb_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
 
     hue, saturation = hex_to_hue_saturation(rgb)
@@ -455,14 +460,14 @@ async def rgb_action(device_name, light, action_data:list) -> None:
 
     await light.set_hue_saturation(hue, saturation)
 
-async def color_temperature_action(device_name, light, action_data) -> None:
+async def color_temperature_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
 
     g_log.debug(f'Action color_temperature | d> {device_name} t> {temperature} l> {repr(light)}')
 
     await light.set_color_temperature(temperature)
 
-async def rgb_bright_action(device_name, light, action_data:list) -> None:
+async def rgb_bright_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
 
@@ -471,7 +476,7 @@ async def rgb_bright_action(device_name, light, action_data:list) -> None:
 
     await light.set().brightness(int(brightness)).hue_saturation(hue, saturation).send(light)
 
-def hex_to_hue_saturation(hex_color):
+def hex_to_hue_saturation(hex_color: str) -> Tuple[int, int]:
     hex_color = hex_color.lstrip('#')
     r, g, b, a = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16), int(hex_color[6:8], 16)
     r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
@@ -496,7 +501,7 @@ TP_PLUGIN_ACTION_MAP = {
 
 ## Initial connection handler
 @TPClient.on(TP.TYPES.onConnect)
-def on_connect(data):
+def on_connect(data: dict) -> None:
     g_log.info(f'Connected to TP v{data.get('tpVersionString', '?')}, plugin v{data.get('pluginVersion', '?')}.')
     g_log.debug(f'Connection: {data}')
     if settings := data.get('settings'):
@@ -504,14 +509,14 @@ def on_connect(data):
 
 ## Settings handler
 @TPClient.on(TP.TYPES.onSettingUpdate)
-def on_setting_update(data):
+def on_setting_update(data: dict) -> None:
     g_log.debug(f'Settings: {data}')
     if (settings := data.get('values')):
         handle_settings(settings, False)
 
 ## Action handler
 @TPClient.on(TP.TYPES.onAction)
-def on_action(data):
+def on_action(data: dict) -> None:
     g_log.debug(f'Action {data}')
     
     action_data = data.get('data')
@@ -527,17 +532,17 @@ def on_action(data):
 
 ## Shutdown handler
 @TPClient.on(TP.TYPES.onShutdown)
-def onShutdown(data):
+def onShutdown(data: dict) -> None:
     g_log.info('Received shutdown event from TP Client.')
 
 ## Error handler
 @TPClient.on(TP.TYPES.onError)
-def onError(exc):
+def onError(exc: dict) -> None:
     g_log.warning(f'Error in TP Client event handler: {repr(exc)}')
 
 # main
 
-def main():
+def main() -> int:
     global TPClient, g_log
     ret = 0  # sys.exit() value
     
