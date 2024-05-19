@@ -35,7 +35,7 @@ def async_to_sync(func: Awaitable[R]) -> R:
 
 # Touch Portal API > Plugin definition
 
-__version__ = 1.0
+__version__ = 1.1
 
 PLUGIN_ID = 'mx.alfador.touchportal.TPLinkTapoPlugin'
 
@@ -280,7 +280,7 @@ g_tapo_client: ApiClient = None
 
 @async_to_sync
 async def handle_settings(settings, on_connect=False) -> None:
-    global g_device_list;
+    global g_device_list
 
     settings = {list(item)[0]: list(item.values())[0] for item in settings}
     config_file = settings.get(TP_PLUGIN_SETTINGS['configFile']['name']).strip()
@@ -291,7 +291,7 @@ async def handle_settings(settings, on_connect=False) -> None:
         TP_PLUGIN_SETTINGS['configFile']['value'] = config_file
         try:
             device_list = read_config_file(config_file)
-            g_device_list = validate_devices(device_list);
+            g_device_list = validate_devices(device_list)
             update_choices()
         except Exception as e:
             g_log.warning(f'Failed to process config file: {e}')
@@ -411,7 +411,8 @@ def update_choices() -> None:
 
 @async_to_sync
 async def perform_action(aid:str, action_data:list) -> None:
-    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['device_list']['id'])
+    action = aid.split('.')[-1]
+    device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS[action]['data']['device_list']['id'])
     light = g_device_list.get(device_name)['light']
 
     if not light:
@@ -430,11 +431,11 @@ async def on_off_action(device_name: str, light: Optional[Any], action_data: lis
     g_log.debug(f'Action: on_off | a> {on_off} d> {device_name} l> {repr(light)}')
 
     if (on_off == 'ON'):
-        await light.o
+        await light.on()
     else:
         await light.off()
 
-async def toggle_action(device_name: str, light: Optional[Any]) -> None:
+async def toggle_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     g_log.debug(f'Action: toggle | d> {device_name} l> {repr(light)}')
     
     device_info = await light.get_device_info()
@@ -465,7 +466,7 @@ async def color_temperature_action(device_name: str, light: Optional[Any], actio
 
     g_log.debug(f'Action color_temperature | d> {device_name} t> {temperature} l> {repr(light)}')
 
-    await light.set_color_temperature(temperature)
+    await light.set_color_temperature(int(temperature))
 
 async def rgb_bright_action(device_name: str, light: Optional[Any], action_data: list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
