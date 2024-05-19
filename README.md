@@ -6,8 +6,8 @@ Control TPL-Link Tapo devices through [Touch Portal](https://www.touch-portal.co
 
 - **Settings:**
     - `Config File Path`            - File Path to Configuration File
-    - `Username`                    - Username used to connect to TOPO light
-    - `Password`                    - Password used to connect to TOPO light
+    - `Username`                    - Username used to connect to TP-Link light
+    - `Password`                    - Password used to connect to TP-Link light
 
 - **Actions**
     - `On / Off`                    - Turn Device **on** or **off**
@@ -66,12 +66,6 @@ L630:
     ip: 127.0.0.9
   - name: "Light #10"
     ip: 127.0.0.410
-
-L1000:
-  - name: "Light #11"
-    ip: 127.0.0.11
-  - name: "Light #12"
-    ip: 127.0.0.12
 ```
 
 It is not mandatory to include all light types in the file, making this example a completely valid one:
