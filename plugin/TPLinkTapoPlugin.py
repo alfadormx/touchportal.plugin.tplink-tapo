@@ -7,7 +7,7 @@ from functools import wraps
 from typing import Any, Awaitable, Dict, Optional, Tuple, TypeVar, Union
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
-from tapo import ApiClient
+from tapo import ApiClient, LightHandler, ColorLightHandler
 
 # Supported device types and actions
 
@@ -272,7 +272,7 @@ except Exception as e:
     sys.exit(f'Could not create TP Client, exiting. Error was:\n{repr(e)}')
 
 g_log = Logger(name = PLUGIN_ID)
-Device = Dict[str, Optional[Union[str, Any]]]
+Device = Dict[str, Optional[Union[str, LightHandler, ColorLightHandler]]]
 g_device_list: Dict[str, Device] = {}
 g_tapo_client: ApiClient = None
 
@@ -318,10 +318,10 @@ async def initialize_tapo(username, password) -> None:
         else:
             device['light'] = result
 
-async def fetch_device(client: ApiClient, device: Device) -> Optional[Any]:
+async def fetch_device(client: ApiClient, device: Device) -> Optional[Union[LightHandler, ColorLightHandler]]:
     try:
         g_log.debug(f'trying fetch_device: d> {device['name']} & ip> {device['ipaddress']}')
-        light: Any
+        light: Union[LightHandler, ColorLightHandler]
         
         # Select API method based on device type
         if device['type'] == 'L510':
@@ -425,7 +425,7 @@ async def perform_action(aid:str, action_data:list) -> None:
     else:
         g_log.warning(f'Got unknown action ID: {aid}')
 
-async def on_off_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def on_off_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
 
     g_log.debug(f'Action: on_off | a> {on_off} d> {device_name} l> {repr(light)}')
@@ -435,7 +435,7 @@ async def on_off_action(device_name: str, light: Optional[Any], action_data: lis
     else:
         await light.off()
 
-async def toggle_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def toggle_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     g_log.debug(f'Action: toggle | d> {device_name} l> {repr(light)}')
     
     device_info = await light.get_device_info()
@@ -446,14 +446,14 @@ async def toggle_action(device_name: str, light: Optional[Any], action_data: lis
     else:
         await light.on()
 
-async def bright_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     
     g_log.debug(f'Action brightness | d> {device_name} b> {brightness}% l> {repr(light)}')
 
     await light.set_brightness(int(brightness))
 
-async def rgb_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def rgb_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
 
     hue, saturation = hex_to_hue_saturation(rgb)
@@ -461,14 +461,14 @@ async def rgb_action(device_name: str, light: Optional[Any], action_data: list) 
 
     await light.set_hue_saturation(hue, saturation)
 
-async def color_temperature_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def color_temperature_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
 
     g_log.debug(f'Action color_temperature | d> {device_name} t> {temperature} l> {repr(light)}')
 
     await light.set_color_temperature(int(temperature))
 
-async def rgb_bright_action(device_name: str, light: Optional[Any], action_data: list) -> None:
+async def rgb_bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
 
