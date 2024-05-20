@@ -1,6 +1,6 @@
 # TP-Link Tapo
 
-Control TPL-Link Tapo devices through [Touch Portal](https://www.touch-portal.com/).
+Control TPL-Link Tapo lights through [Touch Portal](https://www.touch-portal.com/).
 
 ## Features
 
@@ -17,7 +17,7 @@ Control TPL-Link Tapo devices through [Touch Portal](https://www.touch-portal.co
     - `Set Color Temperature`       - Sets the **Color Temperature** and turns **on** the device
     - `Set Color and Set Brightnessness`    - Sets the **Color** and **Set Brightnessness** and turns **on** the device
 
-## Supported devices and actions
+## Supported lights and actions
 | Device | Action                                                                                                           |
 | ------ | ---------------------------------------------------------------------------------------------------------------- |
 | `L510` | `On / Off`, `Toggle`, `Set Brightness`                                                                           |
