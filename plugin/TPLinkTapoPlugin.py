@@ -4,7 +4,7 @@ import sys
 import TouchPortalAPI as TP
 import yaml
 from functools import wraps
-from typing import Any, Awaitable, Dict, Optional, Tuple, TypeVar, Union
+from typing import Any, Awaitable, Dict, List, Optional, Tuple, TypeVar, Union
 from argparse import ArgumentParser
 from TouchPortalAPI.logger import Logger
 from tapo import ApiClient, LightHandler, ColorLightHandler
@@ -26,7 +26,7 @@ def async_to_sync(func: Awaitable[R]) -> R:
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(f'{func} is not a coroutine function')
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> R:
         try:
             return asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
         except RuntimeError:
@@ -274,12 +274,12 @@ except Exception as e:
 g_log = Logger(name = PLUGIN_ID)
 Device = Dict[str, Optional[Union[str, LightHandler, ColorLightHandler]]]
 g_device_list: Dict[str, Device] = {}
-g_tapo_client: ApiClient = None
+g_tapo_client: Optional[ApiClient] = None
 
 # Plugin initialization
 
 @async_to_sync
-async def handle_settings(settings, on_connect=False) -> None:
+async def handle_settings(settings: List[Dict[str, Any]], on_connect: bool = False) -> None:
     global g_device_list
 
     settings = {list(item)[0]: list(item.values())[0] for item in settings}
@@ -303,7 +303,7 @@ async def handle_settings(settings, on_connect=False) -> None:
     if username and password:
         await initialize_tapo(username, password)
 
-async def initialize_tapo(username, password) -> None:
+async def initialize_tapo(username: str, password: str) -> None:
     global g_tapo_client
 
     g_tapo_client = ApiClient(username, password)
@@ -344,7 +344,7 @@ async def fetch_device(client: ApiClient, device: Device) -> Optional[Union[Ligh
         g_log.warning(f'Error fetching data for {device['name']}: {e}')
         return None
 
-async def refresh_device_connection(device_name: str) -> Optional[Any]:
+async def refresh_device_connection(device_name: str) -> Optional[Union[LightHandler, ColorLightHandler]]:
     """Refresh connection to a specific device when session timeout occurs"""
     global g_tapo_client, g_device_list
     
@@ -364,7 +364,7 @@ async def refresh_device_connection(device_name: str) -> Optional[Any]:
         device['light'] = None
         return None
 
-def read_config_file(file_path) -> Dict[str, Device]:
+def read_config_file(file_path: str) -> Dict[str, Device]:
     file_devices: Dict[str, Device] = {}
 
     try:
@@ -430,7 +430,7 @@ def update_choices() -> None:
 ## Action definitions
 
 @async_to_sync
-async def perform_action(aid:str, action_data:list) -> None:
+async def perform_action(aid: str, action_data: List[Dict[str, Any]]) -> None:
     action = aid.split('.')[-1]
     device_name = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS[action]['data']['device_list']['id'])
     light = g_device_list.get(device_name)['light']
@@ -464,7 +464,7 @@ async def perform_action(aid:str, action_data:list) -> None:
     else:
         g_log.warning(f'Got unknown action ID: {aid}')
 
-async def on_off_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def on_off_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     on_off = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['On_Off']['data']['on_off']['id'])
 
     g_log.debug(f'Action: on_off | a> {on_off} d> {device_name} l> {repr(light)}')
@@ -474,7 +474,7 @@ async def on_off_action(device_name: str, light: Optional[Union[LightHandler, Co
     else:
         await light.off()
 
-async def toggle_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def toggle_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     g_log.debug(f'Action: toggle | d> {device_name} l> {repr(light)}')
     
     device_info = await light.get_device_info()
@@ -485,14 +485,14 @@ async def toggle_action(device_name: str, light: Optional[Union[LightHandler, Co
     else:
         await light.on()
 
-async def bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['Bright']['data']['bright']['id'])
     
     g_log.debug(f'Action brightness | d> {device_name} b> {brightness}% l> {repr(light)}')
 
     await light.set_brightness(int(brightness))
 
-async def rgb_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def rgb_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB']['data']['rgb']['id'])
 
     hue, saturation = hex_to_hue_saturation(rgb)
@@ -500,14 +500,14 @@ async def rgb_action(device_name: str, light: Optional[Union[LightHandler, Color
 
     await light.set_hue_saturation(hue, saturation)
 
-async def color_temperature_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def color_temperature_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     temperature = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['ColorTemperature']['data']['temperature']['id'])
 
     g_log.debug(f'Action color_temperature | d> {device_name} t> {temperature} l> {repr(light)}')
 
     await light.set_color_temperature(int(temperature))
 
-async def rgb_bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: list) -> None:
+async def rgb_bright_action(device_name: str, light: Optional[Union[LightHandler, ColorLightHandler]], action_data: List[Dict[str, Any]]) -> None:
     rgb = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['rgb']['id'])
     brightness = TPClient.getActionDataValue(action_data, TP_PLUGIN_ACTIONS['RGB_Bright']['data']['bright']['id'])
 
@@ -541,7 +541,7 @@ TP_PLUGIN_ACTION_MAP = {
 
 ## Initial connection handler
 @TPClient.on(TP.TYPES.onConnect)
-def on_connect(data: dict) -> None:
+def on_connect(data: Dict[str, Any]) -> None:
     g_log.info(f'Connected to TP v{data.get('tpVersionString', '?')}, plugin v{data.get('pluginVersion', '?')}.')
     g_log.debug(f'Connection: {data}')
     if settings := data.get('settings'):
@@ -549,14 +549,14 @@ def on_connect(data: dict) -> None:
 
 ## Settings handler
 @TPClient.on(TP.TYPES.onSettingUpdate)
-def on_setting_update(data: dict) -> None:
+def on_setting_update(data: Dict[str, Any]) -> None:
     g_log.debug(f'Settings: {data}')
     if (settings := data.get('values')):
         handle_settings(settings, False)
 
 ## Action handler
 @TPClient.on(TP.TYPES.onAction)
-def on_action(data: dict) -> None:
+def on_action(data: Dict[str, Any]) -> None:
     g_log.debug(f'Action {data}')
     
     action_data = data.get('data')
@@ -572,12 +572,12 @@ def on_action(data: dict) -> None:
 
 ## Shutdown handler
 @TPClient.on(TP.TYPES.onShutdown)
-def onShutdown(data: dict) -> None:
+def onShutdown(data: Dict[str, Any]) -> None:
     g_log.info('Received shutdown event from TP Client.')
 
 ## Error handler
 @TPClient.on(TP.TYPES.onError)
-def onError(exc: dict) -> None:
+def onError(exc: Dict[str, Any]) -> None:
     g_log.warning(f'Error in TP Client event handler: {repr(exc)}')
 
 # main
