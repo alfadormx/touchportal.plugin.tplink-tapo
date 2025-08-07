@@ -4,7 +4,7 @@
     {
       "label": "Generate entry.tp",
       "type": "shell",
-      "command": "tppsdk",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\tppsdk.exe",
       "args": [
         "plugin/TPLinkTapoPlugin.py"
       ],
@@ -19,7 +19,7 @@
     {
       "label": "Package plugin",
       "type": "shell",
-      "command": "tppbuild",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\tppbuild.exe",
       "args": [
         "plugin/build.py"
       ],

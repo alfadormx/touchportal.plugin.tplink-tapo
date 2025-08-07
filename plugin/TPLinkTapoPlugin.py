@@ -35,7 +35,7 @@ def async_to_sync(func: Awaitable[R]) -> R:
 
 # Touch Portal API > Plugin definition
 
-__version__ = 1.1
+__version__ = 1.2
 
 PLUGIN_ID = 'mx.alfador.touchportal.TPLinkTapoPlugin'
 
@@ -344,6 +344,26 @@ async def fetch_device(client: ApiClient, device: Device) -> Optional[Any]:
         g_log.warning(f'Error fetching data for {device['name']}: {e}')
         return None
 
+async def refresh_device_connection(device_name: str) -> Optional[Any]:
+    """Refresh connection to a specific device when session timeout occurs"""
+    global g_tapo_client, g_device_list
+    
+    if not g_tapo_client or device_name not in g_device_list:
+        return None
+        
+    device = g_device_list[device_name]
+    try:
+        g_log.debug(f'Refreshing connection for device: {device_name}')
+        new_light = await fetch_device(g_tapo_client, device)
+        if new_light:
+            device['light'] = new_light
+            g_log.debug(f'Successfully refreshed connection for device: {device_name}')
+        return new_light
+    except Exception as e:
+        g_log.warning(f'Failed to refresh connection for {device_name}: {e}')
+        device['light'] = None
+        return None
+
 def read_config_file(file_path) -> Dict[str, Device]:
     file_devices: Dict[str, Device] = {}
 
@@ -420,8 +440,27 @@ async def perform_action(aid:str, action_data:list) -> None:
         return
     
     action_func = TP_PLUGIN_ACTION_MAP.get(aid)
-    if (action_func):
-        await action_func(device_name, light, action_data)
+    if action_func:
+        try:
+            await action_func(device_name, light, action_data)
+        except Exception as e:
+            error_str = str(e)
+            # Handle SessionTimeout and similar connection errors
+            if 'SessionTimeout' in error_str or 'timeout' in error_str.lower() or 'connection' in error_str.lower():
+                g_log.info(f'Session timeout detected for device {device_name}, attempting to refresh connection...')
+                refreshed_light = await refresh_device_connection(device_name)
+                if refreshed_light:
+                    # Retry the action with the refreshed connection
+                    try:
+                        await action_func(device_name, refreshed_light, action_data)
+                        g_log.info(f'Successfully completed action after connection refresh for device {device_name}')
+                    except Exception as retry_e:
+                        g_log.warning(f'Action failed even after connection refresh for {device_name}: {retry_e}')
+                else:
+                    g_log.warning(f'Failed to refresh connection for device {device_name}')
+            else:
+                g_log.warning(f'Action failed for device {device_name}: {e}')
+                raise e
     else:
         g_log.warning(f'Got unknown action ID: {aid}')
 

@@ -128,10 +128,14 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/alfado
     winget install --id=Python.Python.3.12 -e
     ```
 
-2. Execute `pip3` in the project's root folder to install dependencies:
+2. Create a virtual environment and install dependencies:
     ```shell
-    pip3 install -r requirements.txt
+    python -m venv .venv
+    .venv\Scripts\Activate.ps1
+    pip install -r requirements.txt
     ```
+    
+    **Note:** Using a virtual environment is recommended to avoid dependency conflicts, especially with the `pyee` package version requirements.
 
 3. To register your plugin in Touch Portal, you can either:
 

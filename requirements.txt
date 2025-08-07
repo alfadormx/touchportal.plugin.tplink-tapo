@@ -1,5 +1,6 @@
 # Project dependencies
 TouchPortal-API
+pyee==8.2.2
 pyinstaller
 tapo
 pyyaml
