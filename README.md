@@ -30,6 +30,8 @@ Control TPL-Link Tapo lights through [Touch Portal](https://www.touch-portal.com
 
 As with all plugins, this requires the Touch Portal Pro version to function. Follow this [Import a Touch Portal plug-in (.tpp)](https://www.touch-portal.com/blog/post/tutorials/import-plugin-guide.php) tutorial.
 
+As of the mid-2026 firmware releases, Tapo has disabled the API used by this plugin by default. In order to use it, you must go into the global settings in the Tapo app, go to Third Party Services, and toggle the "Third Party Compatibility" option back on.
+
 To configure the plugin you need three things: a config file, your TP-Link username and your TP-Link password.
 
 The config file should be stored in your system and has the following format:
